@@ -1,5 +1,5 @@
 /*
-   BCC
+   BLang
    Copyright (c) 2025 William Gibbs
 
    This software is provided 'as-is', without any express or implied
@@ -19,8 +19,8 @@
    3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef _error
-#define _error
+#ifndef ERROR_H
+#define ERROR_H
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -36,4 +36,4 @@ extern void error(const char *text, ...);
 extern void fatal_error(const char *text, ...);
 
 
-#endif // _error
+#endif // ERROR_H

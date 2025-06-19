@@ -1,5 +1,5 @@
 /*
-   BCC
+   BLang
    Copyright (c) 2025 William Gibbs
 
    This software is provided 'as-is', without any express or implied
@@ -18,24 +18,25 @@
       misrepresented as being the original software.
    3. This notice may not be removed or altered from any source distribution.
 */
-#ifndef _preprocess
-#define _preprocess
 
-/*
- * Process for preprocessing; two steps.
- * 
- * Step 1: Take arguments and adjust variable for these. read_arguments(int argc, char**argv);
- * 
- * Step 2: Concatenate files. This can be done with simple char* addition. The main file–the file
- * that contains main()–should be the first, then all others after. Unlike languages like C, B
- * does not support multiple files in the same way. including function is also not a thing in B.
- * Instead, we can simply call the function, and concatonate the files together as one.
-*/
+#ifndef LLVM_WRAPPER_H
+#define LLVM_WRAPPER_H
 
-/** Read the arguments provided at runtime. This include flags, files, and other inputs. */
-extern void read_arguments(int argc, char **argv);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/** Read the contents of a file into a char* variable. */
-extern char* read_file(char* name);
 
-#endif // _preprocess
+void initialize_llvm();
+
+void generate_binary();
+
+void add_function(char *name);
+
+
+#ifdef __cplusplus
+}
+#endif
+
+
+#endif // LLVM_WRAPPER_H

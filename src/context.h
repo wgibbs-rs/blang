@@ -1,5 +1,5 @@
 /*
-   BCC
+   BLang
    Copyright (c) 2025 William Gibbs
 
    This software is provided 'as-is', without any express or implied
@@ -19,26 +19,43 @@
    3. This notice may not be removed or altered from any source distribution.
 */
 
+#ifndef CONTEXT_H
+#define CONTEXT_H
 
-/** Defines token types for the B language. */
-typedef enum {
-    TOKEN_IDENTIFIER,
-    TOKEN_KEYWORD,
-    TOKEN_LITERAL,
-    TOKEN_OPERATOR,
-    TOKEN_PUNCTUATION
-} TokenType;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
-/** Defines the information associated with a token. */
-typedef struct {
-    TokenType type;
-    const char *value;  // pointer to the original source, or copy into heap
-} Token;
+#include <stdbool.h>
 
 
 
-Token *generated_tokens;
 
-/** Convert text input into tokens – a step-by-step version of code. */
-void tokenize_input_text();
+// Compiler options and state
+typedef struct CompilerContext {
+    bool emitAssembly;
+    bool emitLLVM;
+
+    char* outputFilename;
+
+    char* inputFile;
+
+    char* sourceText;
+    
+} CompilerContext;
+
+
+
+
+// Declare a global or external context variable, so other files can use it
+extern CompilerContext ctx;
+
+
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // CONTEXT_H
