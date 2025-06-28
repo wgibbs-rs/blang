@@ -1,3 +1,4 @@
+
 cmake_minimum_required(VERSION 3.10)
 project(blang C CXX)
 
@@ -5,9 +6,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/Flex")
-list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/Bison")
-list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/llvm")
+
+set(CMAKE_BUILD_TYPE Debug)
+
+if (APPLE)
+    list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/Flex")
+    list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/Bison")
+    list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/llvm")
+endif()
+
 
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
@@ -17,7 +24,7 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION} in ${LLVM_DIR}")
 
 # Generate Bison parser
 BISON_TARGET(Parser src/parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.c
-             DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser.h)
+            DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser.h)
 
 # Generate Flex lexer, using Bison's generated header
 FLEX_TARGET(Lexer src/lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.c)
@@ -26,9 +33,9 @@ FLEX_TARGET(Lexer src/lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.c)
 ADD_FLEX_BISON_DEPENDENCY(Lexer Parser)
 
 llvm_map_components_to_libnames(llvm_libs
-  Core Support Target
-  ARM AVR Hexagon MSP430 Mips PowerPC RISCV WebAssembly X86 XCore VE
-  SystemZ Sparc SPIRV NVPTX LoongArch Lanai BPF AArch64 AMDGPU
+    Core Support Target
+    ARM AVR Hexagon MSP430 Mips PowerPC RISCV WebAssembly X86 XCore VE
+    SystemZ Sparc SPIRV NVPTX LoongArch Lanai BPF AArch64 AMDGPU
 )
 
 # Include directories for generated headers
@@ -40,7 +47,9 @@ file(
     SOURCES 
     "src/main.c"
     "src/error.c"
+    "src/preprocess.c"
     "src/llvm.cpp"
+    "src/ast.c"
 )
 
 # Remove raw lexer and parser source files if they're listed by GLOB

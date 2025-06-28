@@ -30,8 +30,6 @@ extern "C" {
 #include <stdbool.h>
 
 
-
-
 // Compiler options and state
 typedef struct CompilerContext {
     bool emitAssembly;
@@ -46,12 +44,8 @@ typedef struct CompilerContext {
 } CompilerContext;
 
 
-
-
 // Declare a global or external context variable, so other files can use it
 extern CompilerContext ctx;
-
-
 
 
 #ifdef __cplusplus

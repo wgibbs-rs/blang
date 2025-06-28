@@ -37,10 +37,14 @@
    return CHARACTER;
 }
 
+"["         {  return '[';       }
+"]"         {  return ']';       }
+
 "{"         {  return '{';       }
 "}"         {  return '}';       }
 "("         {  return '(';       }
 ")"         {  return ')';       }
+":"         {  return ':';       }
 ";"         {  return ';';       }
 
 ","         {  return ',';       }
@@ -63,12 +67,32 @@
 
 "=="        {  return EQ;        }
 "!="        {  return NEQ;       }
+">="        {  return GTEQ;      }
+"<="        {  return LTEQ;      }
+">"         {  return GREATER;   }
+"<"         {  return LESS;      }
+
 "&&"        {  return AND;       }
 "||"        {  return OR;        }
 
+"<<"        {  return LSHIFT;    }
+">>"        {  return RSHIFT;    }
+
+"++"        {  return INC;       }
+"--"        {  return DEC;       }
+
+"if"        {  return IF;        }
+"else"      {  return ELSE;      }
+"while"     {  return WHILE;     }
+
+"return"    {  return RETURN;    }
+
+"system"    {  return SYSTEM;    }
+
+
 [0-9]+      {  yylval.integer = atoi(yytext); return NUMBER; }
 
-[a-zA-Z_][a-zA-Z0-9_]*   { yylval.str = strdup(yytext); return IDENTIFIER; }
+[a-zA-Z_][a-zA-Z0-9_]*    { yylval.str = strdup(yytext); return IDENTIFIER; }
 
 [ \t\n\r]
 

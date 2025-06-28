@@ -19,17 +19,9 @@
    3. This notice may not be removed or altered from any source distribution.
 */
 
-/* comment example blah blah blah */
 
-/* Other comment example */
+void preprocess_text_input(char *text) {
 
-main () {
-   auto a, b, c;
-   a = (3 + 2) - 1;
-   auto hello;
-   --hello;
 
-   hello = hello[1][2][3];
+    
 }
-
-a 'A';
