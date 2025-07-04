@@ -28,6 +28,9 @@
 #define RED "\033[1;31m"
 #define RESET "\033[0m"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** Alert an error in the console; does not quit the program. */
 extern void error(const char *text, ...);
@@ -35,5 +38,8 @@ extern void error(const char *text, ...);
 /** Alert an error in the console and quit the program. */
 extern void fatal_error(const char *text, ...);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ERROR_H

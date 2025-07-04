@@ -23,6 +23,7 @@
 
 /* Other comment example */
 
+
 main () {
    auto a, b, c;
    a = (3 + 2) - 1;

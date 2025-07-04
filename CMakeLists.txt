@@ -48,8 +48,9 @@ file(
     "src/main.c"
     "src/error.c"
     "src/preprocess.c"
-    "src/llvm.cpp"
     "src/ast.c"
+    "src/binary.cpp"
+    "src/llvm_ir.cpp"
 )
 
 # Remove raw lexer and parser source files if they're listed by GLOB

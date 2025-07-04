@@ -10,7 +10,7 @@
 
 
 ASTNode** generated_ast = NULL;
-static int ast_length = 0;
+int ast_length = 0;
 
 void append_statement(ASTNode* node) {
     generated_ast = realloc(generated_ast, sizeof(ASTNode*) * (ast_length + 1));
@@ -26,20 +26,18 @@ void append_statement(ASTNode* node) {
 
 
 static void print_indent(int depth) {
-    if (depth == 0) {return;}
-    for (int i = 0; i < depth; i++) { printf("\t"); }
+    if (depth == 0) return;
+    for (int i = 0; i < depth; i++) printf("\t");
 }
 
 static void print_node(ASTNode* node, int depth) {
     if (!node) { print_indent(depth); printf("NODE IS NULL\n"); return; }
 
-    printf("\n");
     print_indent(depth);
-    if (node->type >= 0 && node->type < sizeof(ASTNodeTypeNames)/sizeof(ASTNodeTypeNames[0])) {
+    if (node->type >= 0 && node->type < sizeof(ASTNodeTypeNames)/sizeof(ASTNodeTypeNames[0]))
         printf("Type: %s\n", ASTNodeTypeNames[node->type]);
-    } else {
+    else
         printf("Type: UNKNOWN (%d)\n", node->type);
-    }
     switch (node->type) {
         case _GLOBAL_DECLARATION:
             print_indent(depth);
@@ -160,16 +158,12 @@ static void print_node(ASTNode* node, int depth) {
             break;
     }
 
-    if (node->successor) {
-        print_node(node->successor, depth);
-    }
+    if (node->successor) print_node(node->successor, depth);
 
 }
 
 
 void print_ast() {
-    for (int i = 0; i < ast_length; i++) {
-        print_node(generated_ast[i], 0);
-    }
+    for (int i = 0; i < ast_length; i++) print_node(generated_ast[i], 0);
     printf("\n");
 }

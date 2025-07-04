@@ -366,6 +366,7 @@ declaration:
         ASTNode* node = malloc(sizeof(ASTNode));
         node->type = _VARIABLE;
         node->list.title = $1;
+        node->list.next = NULL;
         $$ = node;
    }
    |  IDENTIFIER ',' declaration {

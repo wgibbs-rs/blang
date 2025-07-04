@@ -22,21 +22,36 @@
 #ifndef LLVM_WRAPPER_H
 #define LLVM_WRAPPER_H
 
+
+
 #ifdef __cplusplus
+
+
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Value.h>
+#include <map>
+
+
+
+extern std::unique_ptr<llvm::LLVMContext> TheContext;
+extern std::unique_ptr<llvm::IRBuilder<>> Builder;
+extern std::unique_ptr<llvm::Module> TheModule;
+extern std::map<std::string, llvm::Value *> NamedValues;
+
 extern "C" {
 #endif
 
+void generate_llvm_ir();
 
 void initialize_llvm();
-
 void generate_binary();
-
-void add_function(char *name);
-
 
 #ifdef __cplusplus
 }
 #endif
+
 
 
 #endif // LLVM_WRAPPER_H

@@ -122,6 +122,7 @@ static const char* ASTNodeTypeNames[] = {
 
 
 extern ASTNode** generated_ast;
+extern int ast_length;
 
 extern void append_statement(ASTNode* node);
 
