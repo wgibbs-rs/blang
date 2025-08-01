@@ -49,6 +49,9 @@
 
 ","         {  return ',';       }
 
+"*"         {  return '*';       }
+"&"         {  return '&';       }
+
 "auto"      {  return AUTO;      }
 "extrn"     {  return EXTRN;     }
 
@@ -56,7 +59,6 @@
 
 "+"         {  return '+';       }
 "-"         {  return '-';       }
-"*"         {  return '*';       }
 "/"         {  return '/';       }
 
 
@@ -69,8 +71,8 @@
 "!="        {  return NEQ;       }
 ">="        {  return GTEQ;      }
 "<="        {  return LTEQ;      }
-">"         {  return GREATER;   }
-"<"         {  return LESS;      }
+">"         {  return '>';       }
+"<"         {  return '<';       }
 
 "&&"        {  return AND;       }
 "||"        {  return OR;        }
@@ -85,9 +87,14 @@
 "else"      {  return ELSE;      }
 "while"     {  return WHILE;     }
 
+"goto"      {  return GOTO;      }
+
 "return"    {  return RETURN;    }
 
-"system"    {  return SYSTEM;    }
+".read"     {  yylval.str = "read"; return IDENTIFIER;  }
+".write"    {  yylval.str = "write"; return IDENTIFIER;  }
+
+
 
 
 [0-9]+      {  yylval.integer = atoi(yytext); return NUMBER; }
@@ -97,6 +104,6 @@
 [ \t\n\r]
 
 
-.     { printf("blang: \033[1;31merror:\033[0m unexpected character \"%c\"\n", yytext[0]); return UNKNOWN; }
+.     { printf("blang: \033[1;31merror:\033[0m unexpected character \"%c\"\n", yytext[0]); }
 
 %%

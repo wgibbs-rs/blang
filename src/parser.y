@@ -23,10 +23,14 @@
 #include <stdio.h>
 #include "./../src/ast.h"
 
+#include "./../src/error.h"
+
 extern void yyerror(const char *s);
 extern int yylex(void);
 extern int yyparse(void);
 extern int yy_scan_string(const char *str);
+
+static void malloc_err() { fatal_error("failed to allocate space for an AST node."); }
 
 %}
 
@@ -45,19 +49,17 @@ extern int yy_scan_string(const char *str);
 %token <integer> NUMBER CHARACTER ARRAY
 %token <str> STRING
 %token PLUSEQ MINUSEQ TIMESEQ DIVEQ INC DEC
-%token EQ NEQ GTEQ LTEQ GREATER LESS AND OR
+%token EQ NEQ GTEQ LTEQ AND OR
 %token LSHIFT RSHIFT
-%token <character> UNKNOWN
 %token WHILE IF ELSE
+%token GOTO
 %token RETURN
-%token SYSTEM
 
 
 %type <node> function 
 %type <node> statement_list statement 
-%type <node> expression 
-%type <node> declaration global_declaration 
-%type <node> array_reference
+%type <node> expression declaration 
+%type <node> array_reference else block;
 
 %left '+' '-'
 %left '*' '/'
@@ -66,13 +68,21 @@ extern int yy_scan_string(const char *str);
 
 program:
    /* empty */ 
-   | program global_declaration { append_statement($2); }
-   | program function { append_statement($2); }
+   |  program IDENTIFIER expression ';' {
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = _GLOBAL_DECLARATION;
+      node->list.title = $2;
+      node->list.next = $3;
+      append_statement(node);
+   }
+   |  program function { append_statement($2); }
    ;
 
 function:
    IDENTIFIER '(' declaration ')' '{' statement_list '}' { 
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _FUNCTION;
       node->function.title = $1;
       node->function.args = $3;
@@ -84,7 +94,10 @@ function:
 
 statement_list:
    /* empty */ {
-      $$ = NULL;
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = STOP;
+      $$ = node;
    }
    |  statement statement_list {
       ASTNode* node = $1;
@@ -96,72 +109,65 @@ statement_list:
 statement:
    AUTO declaration ';' { 
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _AUTO;
       node->list.next = $2;
+
+      // Set all variables defined to be of type "AUTO"
+      ASTNode* current = node;
+      while (current->type != STOP) {
+         current->list.variableType = VAR_AUTO;
+         current = current->list.next;
+      }
+
       $$ = node;
    }
-   |  EXTRN declaration ';' {
+   |  EXTRN declaration ';' { 
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _EXTRN;
       node->list.next = $2;
+
+      // Set all variables defined to be of type "EXTRN"
+      ASTNode* current = node;
+      while (current->type != STOP) {
+         current->list.variableType = VAR_EXTRN;
+         current = current->list.next;
+      }
+
       $$ = node;
    }
    |  IDENTIFIER '=' expression ';' { 
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _ASSIGNMENT;
       node->list.title = $1;
       node->list.next = $3;
       $$ = node;
    }
 
-   |  WHILE '(' expression ')' '{' statement_list '}' { 
+   |  WHILE '(' expression ')' block { 
       ASTNode* node = malloc(sizeof(ASTNode));
-      node->type = _WHILE_LOOP;
-      node->list.inner = $3;
-      node->list.next = $6;
-      $$ = node;   
-   }
-
-   |  WHILE '(' expression ')' statement { 
-      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _WHILE_LOOP;
       node->list.inner = $3;
       node->list.next = $5;
       $$ = node;
-   }
-
-   |  IF '(' expression ')' '{' statement_list '}' { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      node->type = _IF;
-      node->list.inner = $3;
-      node->list.next = $6;
-      $$ = node;         
    }
    
-   |  IF '(' expression ')' statement { 
+   |  IF '(' expression ')' block else { 
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _IF;
-      node->list.inner = $3;
-      node->list.next = $5;
-      $$ = node;
-   }
-
-   |  ELSE '{' statement_list '}' { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      node->type = _ELSE;
-      node->list.next = $3;
-      $$ = node;  
-   }
-
-   |  ELSE statement { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      node->type = _ELSE;
-      node->list.next = $2;
+      node->if_t.cond = $3;
+      node->if_t.statements = $5;
+      node->if_t.else_t = $6;
       $$ = node;
    }
 
    |  IDENTIFIER ':' { 
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _LABEL;
       node->string = $1;
       $$ = node;
@@ -169,6 +175,7 @@ statement:
 
    |  IDENTIFIER '(' declaration ')' ';' { 
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _FUNCTION_CALL;
       node->list.title = $1;
       node->list.next = $3;
@@ -178,12 +185,14 @@ statement:
 
    |  IDENTIFIER INC ';' {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _INC;
       node->string = $1;
       $$ = node;
    }
    |  INC IDENTIFIER ';' {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _INC;
       node->string = $2;
       $$ = node;
@@ -191,12 +200,14 @@ statement:
       
    |  IDENTIFIER DEC ';' {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _DEC;
       node->string = $1;
       $$ = node;
    }
    |  DEC IDENTIFIER ';' {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _DEC;
       node->string = $2;
       $$ = node;
@@ -204,10 +215,20 @@ statement:
 
    |  RETURN '(' expression ')' ';' { 
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _RETURN;
       node->list.next = $3;
       $$ = node;
    }
+
+   | GOTO IDENTIFIER ';' {
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = _GOTO;
+      node->string = $2;
+      $$ = node;
+   }
+
    ;
 
 expression:
@@ -216,6 +237,7 @@ expression:
 
    |  expression '+' expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _ADD;
       node->factors.left = $1;
       node->factors.right = $3;
@@ -224,6 +246,7 @@ expression:
 
    |  expression '-' expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _SUBTRACT;
       node->factors.left = $1;
       node->factors.right = $3;
@@ -232,6 +255,7 @@ expression:
 
    |  expression '*' expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _MULTIPLY;
       node->factors.left = $1;
       node->factors.right = $3;
@@ -240,6 +264,7 @@ expression:
 
    |  expression '/' expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _DIVIDE;
       node->factors.left = $1;
       node->factors.right = $3;
@@ -248,6 +273,7 @@ expression:
 
    |  expression GTEQ expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _GTEQ;
       node->factors.left = $1;
       node->factors.right = $3;
@@ -256,22 +282,25 @@ expression:
 
    |  expression LTEQ expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _LTEQ;
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
-   |  expression GREATER expression {  
+   |  expression '>' expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _GREATER;
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
-   |  expression LESS expression {  
+   |  expression '<' expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _LESS;
       node->factors.left = $1;
       node->factors.right = $3;
@@ -280,6 +309,7 @@ expression:
 
    |  expression EQ expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _EQUALS;
       node->factors.left = $1;
       node->factors.right = $3;
@@ -288,6 +318,7 @@ expression:
 
    |  expression NEQ expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _NEQUALS;
       node->factors.left = $1;
       node->factors.right = $3;
@@ -296,6 +327,7 @@ expression:
 
    |  IDENTIFIER '(' declaration ')' ';' {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _FUNCTION_CALL;
       node->list.title = $1;
       node->list.next = $3;
@@ -304,12 +336,14 @@ expression:
       
    |  IDENTIFIER INC {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _INC;
       node->string = $1;
       $$ = node;
    }
    |  INC IDENTIFIER {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _INC;
       node->string = $2;
       $$ = node;
@@ -317,12 +351,14 @@ expression:
       
    |  IDENTIFIER DEC {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _DEC;
       node->string = $1;
       $$ = node;
    }
    |  DEC IDENTIFIER {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _DEC;
       node->string = $2;
       $$ = node;
@@ -330,6 +366,7 @@ expression:
 
    |  IDENTIFIER array_reference { 
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _ARRAY_REF;
       node->list.title = $1;
       node->list.next = $2;
@@ -338,6 +375,7 @@ expression:
    
    |  IDENTIFIER {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _VARIABLE;
       node->string = $1;
       $$ = node;
@@ -345,6 +383,7 @@ expression:
 
    |  NUMBER {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _NUMBER;
       node->integer = $1;
       $$ = node;
@@ -352,59 +391,82 @@ expression:
 
    |  CHARACTER {
       ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
       node->type = _NUMBER;
       node->integer = (int)$1;
       $$ = node;
    }
+
    ;
 
 declaration:
    /* empty */ {
-      $$ = NULL;
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = STOP;
+      $$ = node;
    }
    |  IDENTIFIER {
-        ASTNode* node = malloc(sizeof(ASTNode));
-        node->type = _VARIABLE;
-        node->list.title = $1;
-        node->list.next = NULL;
-        $$ = node;
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = _VARIABLE;
+      node->list.title = $1;
+      node->list.next = malloc(sizeof(ASTNode));
+      if (!node->list.next) malloc_err();
+      node->list.next->type = STOP;
+      $$ = node;
    }
    |  IDENTIFIER ',' declaration {
-        ASTNode* node = malloc(sizeof(ASTNode));
-        node->type = _VARIABLE;
-        node->list.title = $1;
-        node->list.next = $3;
-        $$ = node;
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = _VARIABLE;
+      node->list.title = $1;
+      node->list.next = $3;
+      $$ = node;
    }
 ;
 
-global_declaration:
-   IDENTIFIER expression ';' {
+
+else:
+   /* empty */ {
       ASTNode* node = malloc(sizeof(ASTNode));
-      node->type = _GLOBAL_DECLARATION;
-      node->list.title = $1;
-      node->list.next = $2;
+      if (!node) malloc_err();
+      node->type = STOP;
       $$ = node;
    }
+   | ELSE block { $$ = $2; }
    ;
 
+block:
+   '{' statement_list '}' { $$ = $2; }
+   | statement { $$ = $1; }
+   ;
+
+
 array_reference:
-    /* empty */ {
-        $$ = NULL;
-    }
+   /* empty */ {
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = STOP;
+      $$ = node;
+   }
   | '[' expression ']' {
         ASTNode* node = malloc(sizeof(ASTNode));
-        node->type = _ARRAY;
-        node->list.inner = $2;
-        node->list.next = NULL;
-        $$ = node;
+      if (!node) malloc_err();
+      node->type = _ARRAY;
+      node->list.inner = $2;
+      node->list.next = malloc(sizeof(ASTNode));
+      if (!node->list.next) malloc_err();
+      node->list.next->type = STOP;
+      $$ = node;
     }
   | '[' expression ']' array_reference {
-        ASTNode* node = malloc(sizeof(ASTNode));
-        node->type = _ARRAY;
-        node->list.inner = $2;
-        node->list.next = $4;
-        $$ = node;
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = _ARRAY;
+      node->list.inner = $2;
+      node->list.next = $4;
+      $$ = node;
     }
 ;
 
