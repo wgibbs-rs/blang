@@ -46,7 +46,11 @@ extern "C" {
 void generate_llvm_ir();
 
 void initialize_llvm();
+
+
 void generate_binary();
+void export_ir();
+void export_asm();
 
 #ifdef __cplusplus
 }

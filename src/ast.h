@@ -26,6 +26,10 @@
 extern "C" {
 #endif
 
+typedef enum VariableType {
+    VAR_AUTO, VAR_EXTRN
+} VariableType;
+
 typedef struct ASTNode {
     enum { 
         _GLOBAL_DECLARATION,
@@ -34,9 +38,9 @@ typedef struct ASTNode {
         _ASSIGNMENT,
         _WHILE_LOOP,
         _IF,
-        _ELSE,
         _LABEL,
         _RETURN,
+        _GOTO,
         _FUNCTION,
 
 
@@ -51,13 +55,16 @@ typedef struct ASTNode {
         _EQUALS,
         _NEQUALS,
         _FUNCTION_CALL,
+
         _INC,
         _DEC,
 
         _NUMBER,
         _VARIABLE,
         _ARRAY,
-        _ARRAY_REF
+        _ARRAY_REF,
+
+        STOP
     } type;
     union {
         int integer;
@@ -75,6 +82,7 @@ typedef struct ASTNode {
                 struct ASTNode* inner;
             };
             struct ASTNode* next;
+            VariableType variableType;
         } list;
 
         struct {
@@ -82,6 +90,12 @@ typedef struct ASTNode {
             struct ASTNode* args;
             struct ASTNode* statements;
         } function;
+
+        struct {
+            struct ASTNode* cond;
+            struct ASTNode* statements;
+            struct ASTNode* else_t;
+        } if_t;
     };
     struct ASTNode* successor;
 } ASTNode;
@@ -94,9 +108,9 @@ static const char* ASTNodeTypeNames[] = {
     "_ASSIGNMENT",
     "_WHILE_LOOP",
     "_IF",
-    "_ELSE",
     "_LABEL",
     "_RETURN",
+    "_GOTO",
     "_FUNCTION",
 
     "_ADD",
@@ -117,7 +131,9 @@ static const char* ASTNodeTypeNames[] = {
     "_NUMBER",
     "_VARIABLE",
     "_ARRAY",
-    "_ARRAY_REF"
+    "_ARRAY_REF",
+
+    "STOP"
 };
 
 

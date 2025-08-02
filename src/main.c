@@ -60,9 +60,13 @@ int main(int argc, char *argv[]) {
 
    generate_llvm_ir();
 
-   if (!(ctx.emitAssembly || ctx.emitLLVM)) {
+   if (ctx.emitLLVM) 
+      export_ir();
+   else if (ctx.emitAssembly) 
+      export_asm();
+   else 
       generate_binary();
-   }
+   
 
    return 0;
 }
@@ -86,7 +90,10 @@ void parse_arguments(int argc, char *argv[]) {
 
       else { 
          if (argv[i][0] == '-') { fatal_error("unknown argument: \'%s\'\n", argv[i]); }
-         else { ctx.sourceText = read_file(argv[i]); }
+         else { 
+            ctx.inputFile = argv[i];
+            ctx.sourceText = read_file(argv[i]); 
+         }
       }
    }
 }

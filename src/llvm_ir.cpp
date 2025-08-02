@@ -39,10 +39,13 @@
 std::unique_ptr<llvm::LLVMContext> TheContext;
 std::unique_ptr<llvm::IRBuilder<>> Builder;
 std::unique_ptr<llvm::Module> TheModule;
+
+
 std::map<std::string, llvm::Value *> NamedValues;
 
-std::map<std::string, llvm::FunctionType *> FunctionTypeValues;
 
+std::map<std::string, llvm::Function *> FunctionValues;
+std::map<std::string, llvm::BasicBlock *> BasicBlockValues;
 
 
 static llvm::Value *LogErrorV(const char *Str) {
@@ -50,34 +53,227 @@ static llvm::Value *LogErrorV(const char *Str) {
   return nullptr;
 }
 
+/** 
+ * Stores whether a function being processed includes a return statement at the end.
+ * If not, return(0); is added.
+ */
+static bool functionDoesReturn = false;
 
-static bool functionDoesReturn;
+static llvm::Value* add_expression(ASTNode* node) {
+
+   switch (node->type) {
+      case ASTNode::_ADD:
+         return Builder->CreateAdd(add_expression(node->factors.left), add_expression(node->factors.right), "addtmp");
+         break;
+      case ASTNode::_SUBTRACT:
+         return Builder->CreateSub(add_expression(node->factors.left), add_expression(node->factors.right), "subtmp");
+         break;
+      case ASTNode::_MULTIPLY:
+         return Builder->CreateMul(add_expression(node->factors.left), add_expression(node->factors.right), "multmp");
+         break;
+      case ASTNode::_DIVIDE:
+         return Builder->CreateSDiv(add_expression(node->factors.left), add_expression(node->factors.right), "sdivtmp");
+         break;
+      case ASTNode::_GTEQ:
+         {
+            llvm::Value* cmp = Builder->CreateICmpSGE(add_expression(node->factors.left), add_expression(node->factors.right), "sgetmp");
+            return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
+            break;
+         }
+      case ASTNode::_LTEQ:
+         {
+            llvm::Value* cmp = Builder->CreateICmpSLE(add_expression(node->factors.left), add_expression(node->factors.right), "sletmp");
+            return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
+            break;
+         }
+      case ASTNode::_GREATER:
+         {
+            llvm::Value* cmp = Builder->CreateICmpSGT(add_expression(node->factors.left), add_expression(node->factors.right), "sgttmp");
+            return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
+            break;
+         }
+      case ASTNode::_LESS:
+         {
+            llvm::Value* cmp = Builder->CreateICmpSLT(add_expression(node->factors.left), add_expression(node->factors.right), "slttmp");
+            return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
+            break;
+         }
+      case ASTNode::_EQUALS:
+         {
+            llvm::Value* cmp = Builder->CreateICmpEQ(add_expression(node->factors.left), add_expression(node->factors.right), "eqtmp");
+            return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
+            break;
+         }
+      case ASTNode::_NEQUALS:
+         {
+            llvm::Value* cmp = Builder->CreateICmpNE(add_expression(node->factors.left), add_expression(node->factors.right), "netmp");
+            return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
+            break;
+         }
+      case ASTNode::_FUNCTION_CALL:
+         break;
+      case ASTNode::_INC:
+         {
+            llvm::Value* inc = Builder->CreateAdd(NamedValues[node->string], llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "inctmp");
+            Builder->CreateStore(inc, NamedValues[node->string]);
+            return Builder->CreateSub(inc, llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "lesser_inc");
+         }
+      case ASTNode::_DEC:
+         {
+            llvm::Value* dec = Builder->CreateSub(NamedValues[node->string], llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "dectmp");
+            Builder->CreateStore(dec, NamedValues[node->string]);
+            return Builder->CreateAdd(dec, llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "greater_dec");
+         }
+         break;
+      case ASTNode::_NUMBER:
+         return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*TheContext), node->integer);
+         break;
+      case ASTNode::_VARIABLE:
+         return Builder->CreateLoad(llvm::Type::getInt64Ty(*TheContext), NamedValues[node->string], "loadtmp");
+         break;
+      default:
+         break;
+   }
+
+   return nullptr;
+
+}
+
+/*
+ * To compress an i64 into an i1, we can do (a != 0).
+*/
+
+static void add_statement(ASTNode* node) {
+
+   switch (node->type) {
+      case ASTNode::STOP: return;
+      case ASTNode::_AUTO:
+      case ASTNode::_EXTRN:
+         add_statement(node->list.next);
+         add_statement(node->successor);
+         break;
+      case ASTNode::_VARIABLE:
+         {
+            if (node->list.variableType == VariableType::VAR_AUTO) {
+               NamedValues[node->list.title] = Builder->CreateAlloca(llvm::Type::getInt64Ty(*TheContext), nullptr, node->list.title);
+               add_statement(node->list.next);
+            }
+            else if (node->list.variableType == VariableType::VAR_EXTRN) {
+               NamedValues[node->list.title] = new llvm::GlobalVariable(
+                  *TheModule,
+                  llvm::Type::getInt64Ty(*TheContext),
+                  false,
+                  llvm::GlobalValue::ExternalLinkage,
+                  nullptr,
+                  node->list.title
+               );
+            }
+            break;
+         }
+      case ASTNode::_ASSIGNMENT:
+         {
+            Builder->CreateStore(add_expression(node->list.next), NamedValues[node->list.title]);
+            add_statement(node->successor);
+            break;
+         }
+      case ASTNode::_WHILE_LOOP:
+         break;
+      case ASTNode::_IF:
+         {
+
+            llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "then", Builder->GetInsertBlock()->getParent());
+            llvm::BasicBlock *Merge = llvm::BasicBlock::Create(*TheContext, "merge", Builder->GetInsertBlock()->getParent());
+
+            // To set the i64 conditional (if_t.cond) to i1, we perform if_t.cond != 0.
+            llvm::Value* cond_i1 = Builder->CreateICmpNE(
+               add_expression(node->if_t.cond), 
+               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)), 
+               "cond_i1" 
+            );
+            
+            // Test if statement includes an "else" section
+            if (node->if_t.else_t->type != ASTNode::STOP) {
+               llvm::BasicBlock *Else = llvm::BasicBlock::Create(*TheContext, "else", Builder->GetInsertBlock()->getParent());
+
+               Builder->CreateCondBr(cond_i1, Then, Else);
+
+               // Write "else" code
+               Builder->SetInsertPoint(Else);
+               add_statement(node->if_t.else_t);
+               if (!Else->getTerminator()) Builder->CreateBr(Merge);
+            
+            }
+            else {
+               Builder->CreateCondBr(cond_i1, Then, Merge);
+            }
+
+            // Write "then" code.
+            Builder->SetInsertPoint(Then);
+            add_statement(node->if_t.statements);
+            if (!Then->getTerminator()) Builder->CreateBr(Merge);
+
+            Builder->SetInsertPoint(Merge);
+            add_statement(node->successor);
+
+            break;
+         }
+      case ASTNode::_LABEL:
+         printf("Created a label.");
+         BasicBlockValues[node->string] = llvm::BasicBlock::Create(*TheContext, node->string, Builder->GetInsertBlock()->getParent());
+         Builder->CreateBr(BasicBlockValues[node->string]);
+         Builder->SetInsertPoint(BasicBlockValues[node->string]);
+         add_statement(node->successor);
+         break;
+      case ASTNode::_GOTO:
+         Builder->CreateBr(BasicBlockValues[node->string]);
+         add_statement(node->successor);
+         break;
+      case ASTNode::_RETURN:
+         Builder->CreateRet(add_expression(node->list.next));
+         functionDoesReturn = true;
+         break;
+      case ASTNode::_INC:
+         {
+            llvm::Value* inc = Builder->CreateAdd(NamedValues[node->string], llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "inctmp");
+            Builder->CreateStore(inc, NamedValues[node->string]);
+            add_statement(node->successor);
+            break;
+         }
+      case ASTNode::_DEC:
+         {
+            llvm::Value* dec = Builder->CreateSub(NamedValues[node->string], llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "dectmp");
+            Builder->CreateStore(dec, NamedValues[node->string]);
+            add_statement(node->successor);
+            break;
+         }
+      default:
+         fatal_error("unknown statement.");
+         break;
+   }
+}
+
+
 
 static void add_function(ASTNode* node) {
 
 
    std::vector<llvm::Type*> list;
-   ASTNode* currentArg = node->function.args;
-
-   while (currentArg) {
-      list.push_back(llvm::Type::getInt64Ty(*TheContext));
-      currentArg = currentArg->list.next;
-   }
+   for ( ASTNode* currentArg = node->function.args; 
+         currentArg; 
+         currentArg = currentArg->list.next
+   ) list.push_back(llvm::Type::getInt64Ty(*TheContext));
 
    
-   llvm::FunctionType *funcType;
-   if (list.size() == 0) {
-      funcType = llvm::FunctionType::get(
-         llvm::Type::getInt64Ty(*TheContext),
-         false
-      );
-   } else {
-      funcType = llvm::FunctionType::get(
-         llvm::Type::getInt64Ty(*TheContext),
-         list,
-         false
-      );
-   }
+   llvm::FunctionType *funcType = list.size() == 0 
+      ?  llvm::FunctionType::get(
+            llvm::Type::getInt64Ty(*TheContext),
+            false
+         )
+      :  llvm::FunctionType::get(
+            llvm::Type::getInt64Ty(*TheContext),
+            list,
+            false
+         );
 
    llvm::Function *function = llvm::Function::Create(
       funcType,
@@ -86,17 +282,15 @@ static void add_function(ASTNode* node) {
       *TheModule
    );
 
+   functionDoesReturn = false; // False, unless proven otherwise.
 
-   llvm::BasicBlock *entryBasicBlock = llvm::BasicBlock::Create(*TheContext, llvm::Twine(node->function.title), function);
-   Builder->SetInsertPoint(entryBasicBlock);
+   Builder->SetInsertPoint(llvm::BasicBlock::Create(*TheContext, "entry", function));
 
-   functionDoesReturn = false;
-
+   add_statement(node->function.statements); // Begin adding statements to module.
 
    // If no return statement is made, then return 0;
-   if (!functionDoesReturn) {
+   if (!functionDoesReturn) 
       Builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt64Ty(*TheContext), 0));
-   }
 
 }
 
@@ -109,15 +303,12 @@ static void analyze_ast() {
 
    bool foundMainFunction = false;
    
-   for (int i = 0; i < ast_length; i++) {
+   for (int i = 0; i < ast_length; i++)
       if (generated_ast[i]->type == ASTNode::_FUNCTION)
          if (strcmp(generated_ast[i]->function.title, "main") == 0)
             foundMainFunction = true;
-   }
 
-   if (!foundMainFunction) {
-      fatal_error("no entry point.");
-   }
+   if (!foundMainFunction) fatal_error("no entry point.");
 
 }
 
@@ -136,7 +327,7 @@ extern "C" void generate_llvm_ir() {
             add_global_variable(generated_ast[i]);
             break;
          default:
-            fatal_error("unrecognized root node \"%s\"\n", ASTNodeTypeNames[generated_ast[i]->type]);
+            fatal_error("unrecognized root type \"%s\"\n", ASTNodeTypeNames[generated_ast[i]->type]);
             break;
       }
 

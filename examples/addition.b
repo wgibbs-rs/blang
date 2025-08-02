@@ -19,18 +19,20 @@
    3. This notice may not be removed or altered from any source distribution.
 */
 
-/* comment example blah blah blah */
-
-/* Other comment example */
-
 
 main () {
-   auto a, b, c;
-   a = (3 + 2) - 1;
-   auto hello;
-   --hello;
+   if ('A') {
 
-   hello = hello[1][2][3];
+   } else {
+      auto first;
+   }
+
+   if ('B') {
+
+   } else {
+      auto second;
+   }
 }
+
 
 a 'A';

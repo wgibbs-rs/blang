@@ -33,7 +33,9 @@ void error(const char *text, ...) {
    va_end(args);
 }
 
-
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((noreturn))
+#endif
 void fatal_error(const char *text, ...) {
    va_list args;
    va_start(args, text);

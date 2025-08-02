@@ -26,7 +26,7 @@
 
 #include "llvm.h"
 #include "context.h"
-
+#include "error.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -40,6 +40,7 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/IR/LegacyPassManager.h>
 
+
 #include <llvm/TargetParser/Host.h>
 
 
@@ -47,76 +48,118 @@ extern "C" void initialize_llvm() {
 
    TheContext = std::make_unique<llvm::LLVMContext>();
    Builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*TheContext));
-   TheModule = std::make_unique<llvm::Module>("Module", *TheContext);
+   TheModule = std::make_unique<llvm::Module>(ctx.inputFile, *TheContext);
 
-
-   // Must run argument parsing before this (so we know whether to initialize LLVM.)
-   if (!(ctx.emitAssembly || ctx.emitLLVM)) {
-      
-      // Initialize all targets (only do this once in your program)
-      llvm::InitializeAllTargetInfos();
-      llvm::InitializeAllTargets();
-      llvm::InitializeAllTargetMCs();
-      llvm::InitializeAllAsmParsers();
-      llvm::InitializeAllAsmPrinters();
-   }
+   // Initialize all targets (only do this once in your program)
+   llvm::InitializeAllTargetInfos();
+   llvm::InitializeAllTargets();
+   llvm::InitializeAllTargetMCs();
+   llvm::InitializeAllAsmParsers();
+   llvm::InitializeAllAsmPrinters();
    
 }
 
+extern "C" void export_asm() {
 
-extern "C" void generate_binary() {
 
+   std::string targetTriple = llvm::sys::getDefaultTargetTriple();
+   TheModule->setTargetTriple(targetTriple);
+
+   std::string error;
+   const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
+
+   if (!target) {
+      llvm::errs() << "Failed to lookup target: " << error << "\n";
+      return;
+   }
+
+   llvm::TargetOptions opt;
+   auto RM = std::optional<llvm::Reloc::Model>();
+   llvm::TargetMachine* targetMachine = target->createTargetMachine(targetTriple, "generic", "", opt, RM);
+
+   TheModule->setDataLayout(targetMachine->createDataLayout());
+
+   // Prepare output file
+   std::error_code EC;
+   llvm::raw_fd_ostream dest("output.s", EC, llvm::sys::fs::OF_None);
+
+   if (EC) {
+      llvm::errs() << "Could not open file: " << EC.message() << "\n";
+      return;
+   }
+
+   // Create a pass manager to emit machine code
+   llvm::legacy::PassManager pass;
+
+   // Set file type: object file (.o)
+   llvm::CodeGenFileType fileType = llvm::CodeGenFileType::AssemblyFile;
+
+   if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, fileType)) {
+      llvm::errs() << "TargetMachine can't emit a file of this type\n";
+      return;
+   }
+
+   pass.run(*TheModule);
+   dest.flush();
+
+   llvm::outs() << "Wrote " << ctx.outputFilename << "\n";
+
+}
+
+
+extern "C" void export_ir() {
    std::error_code EC;
    llvm::raw_fd_ostream dest("output.ll", EC, llvm::sys::fs::OF_None);
 
-   if (EC) {
-      llvm::errs() << "Could not open file: " << EC.message();
-   } else {
+   if (EC)
+      fatal_error("Could not open file: %s", EC.message().c_str());
+   else
       TheModule->print(dest, nullptr); // Print IR to file
+}
+
+extern "C" void generate_binary() {
+
+   std::string targetTriple = llvm::sys::getDefaultTargetTriple();
+   TheModule->setTargetTriple(targetTriple);
+
+   std::string error;
+   const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
+
+   if (!target) {
+      llvm::errs() << "Failed to lookup target: " << error << "\n";
+      return;
    }
 
+   llvm::TargetOptions opt;
+   auto RM = std::optional<llvm::Reloc::Model>();
+   llvm::TargetMachine* targetMachine = target->createTargetMachine(targetTriple, "generic", "", opt, RM);
 
-   // std::string targetTriple = llvm::sys::getDefaultTargetTriple();
-   // TheModule->setTargetTriple(targetTriple);
+   TheModule->setDataLayout(targetMachine->createDataLayout());
 
-   // std::string error;
-   // const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
+   // Prepare output file
+   std::error_code EC;
+   llvm::raw_fd_ostream dest(ctx.outputFilename, EC, llvm::sys::fs::OF_None);
 
-   // if (!target) {
-   //    llvm::errs() << "Failed to lookup target: " << error << "\n";
-   //    return;
-   // }
+   if (EC) {
+      llvm::errs() << "Could not open file: " << EC.message() << "\n";
+      return;
+   }
 
-   // llvm::TargetOptions opt;
-   // auto RM = std::optional<llvm::Reloc::Model>();
-   // llvm::TargetMachine* targetMachine = target->createTargetMachine(targetTriple, "generic", "", opt, RM);
+   // Create a pass manager to emit machine code
+   llvm::legacy::PassManager pass;
 
-   // TheModule->setDataLayout(targetMachine->createDataLayout());
+   // Set file type: object file (.o)
+   llvm::CodeGenFileType fileType = llvm::CodeGenFileType::ObjectFile;
 
-   // // Prepare output file
-   // std::error_code EC;
-   // llvm::raw_fd_ostream dest(ctx.outputFilename, EC, llvm::sys::fs::OF_None);
+   if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, fileType)) {
+      llvm::errs() << "TargetMachine can't emit a file of this type\n";
+      return;
+   }
 
-   // if (EC) {
-   //    llvm::errs() << "Could not open file: " << EC.message() << "\n";
-   //    return;
-   // }
+   pass.run(*TheModule);
+   dest.flush();
 
-   // // Create a pass manager to emit machine code
-   // llvm::legacy::PassManager pass;
-
-   // // Set file type: object file (.o)
-   // llvm::CodeGenFileType fileType = llvm::CodeGenFileType::ObjectFile;
-
-   // if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, fileType)) {
-   //    llvm::errs() << "TargetMachine can't emit a file of this type\n";
-   //    return;
-   // }
-
-   // pass.run(*TheModule);
-   // dest.flush();
-
-   // llvm::outs() << "Wrote " << ctx.outputFilename << "\n";
+   llvm::outs() << "Wrote " << ctx.outputFilename << "\n";
 }
 
 
