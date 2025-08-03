@@ -177,12 +177,35 @@ static void add_statement(ASTNode* node) {
             break;
          }
       case ASTNode::_WHILE_LOOP:
-         break;
+         { 
+            llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "while_then", Builder->GetInsertBlock()->getParent());
+            llvm::BasicBlock *Merge = llvm::BasicBlock::Create(*TheContext, "while_merge", Builder->GetInsertBlock()->getParent());
+
+            llvm::Value* cond_i1 = Builder->CreateICmpNE(
+               add_expression(node->list.inner), 
+               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)), 
+               "while_cond_i1_1" 
+            );
+            Builder->CreateCondBr(cond_i1, Then, Merge);
+
+            Builder->SetInsertPoint(Then);
+            add_statement(node->list.next);
+            cond_i1 = Builder->CreateICmpNE(
+               add_expression(node->list.inner), 
+               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)), 
+               "while_cond_i1_2" 
+            );
+            Builder->CreateCondBr(cond_i1, Then, Merge);
+
+            Builder->SetInsertPoint(Merge);
+            add_statement(node->successor);
+            break;
+         }
       case ASTNode::_IF:
          {
 
-            llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "then", Builder->GetInsertBlock()->getParent());
-            llvm::BasicBlock *Merge = llvm::BasicBlock::Create(*TheContext, "merge", Builder->GetInsertBlock()->getParent());
+            llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "if_then", Builder->GetInsertBlock()->getParent());
+            llvm::BasicBlock *Merge = llvm::BasicBlock::Create(*TheContext, "if_merge", Builder->GetInsertBlock()->getParent());
 
             // To set the i64 conditional (if_t.cond) to i1, we perform if_t.cond != 0.
             llvm::Value* cond_i1 = Builder->CreateICmpNE(
@@ -193,7 +216,7 @@ static void add_statement(ASTNode* node) {
             
             // Test if statement includes an "else" section
             if (node->if_t.else_t->type != ASTNode::STOP) {
-               llvm::BasicBlock *Else = llvm::BasicBlock::Create(*TheContext, "else", Builder->GetInsertBlock()->getParent());
+               llvm::BasicBlock *Else = llvm::BasicBlock::Create(*TheContext, "if_else", Builder->GetInsertBlock()->getParent());
 
                Builder->CreateCondBr(cond_i1, Then, Else);
 

@@ -21,16 +21,8 @@
 
 
 main () {
-   if ('A') {
+   while ('A') {
 
-   } else {
-      auto first;
-   }
-
-   if ('B') {
-
-   } else {
-      auto second;
    }
 }
 
