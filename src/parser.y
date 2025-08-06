@@ -235,6 +235,14 @@ expression:
 
    '(' expression ')' { $$ = $2; }
 
+   | '!' expression {
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = _NOT;
+      node->inner = $2;
+      $$ = node;
+   }
+
    |  expression '+' expression {  
       ASTNode* node = malloc(sizeof(ASTNode));
       if (!node) malloc_err();

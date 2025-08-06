@@ -112,6 +112,17 @@ static llvm::Value* add_expression(ASTNode* node) {
          }
       case ASTNode::_FUNCTION_CALL:
          break;
+
+      case ASTNode::_NOT:
+         {
+            llvm::Value* not_value = Builder->CreateICmpEQ(
+               add_expression(node->inner), 
+               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)),
+               "not_tmp"
+            );
+            return Builder->CreateZExt(not_value, llvm::Type::getInt64Ty(*TheContext), "i64_not");
+            break;
+         }
       case ASTNode::_INC:
          {
             llvm::Value* inc = Builder->CreateAdd(NamedValues[node->string], llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "inctmp");

@@ -74,6 +74,8 @@
 ">"         {  return '>';       }
 "<"         {  return '<';       }
 
+"!"         {  return '!';       }
+
 "&&"        {  return AND;       }
 "||"        {  return OR;        }
 

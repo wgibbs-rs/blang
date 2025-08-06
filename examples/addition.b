@@ -21,9 +21,8 @@
 
 
 main () {
-   while ('A') {
-
-   }
+   auto a;
+   a = !a;
 }
 
 

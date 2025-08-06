@@ -148,6 +148,10 @@ static void print_node(ASTNode* node, int depth) {
             printf("Title: %s\n", node->list.title);
             print_node(node->list.next, depth + 1);
             break;
+        
+        case _NOT:
+            print_node(node->inner, depth + 1);
+            break;
 
         case _INC:
             print_indent(depth);

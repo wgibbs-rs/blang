@@ -56,6 +56,8 @@ typedef struct ASTNode {
         _NEQUALS,
         _FUNCTION_CALL,
 
+        _NOT,
+
         _INC,
         _DEC,
 
@@ -70,6 +72,8 @@ typedef struct ASTNode {
         int integer;
 
         char* string;
+
+        struct ASTNode* inner;
 
         struct {
             struct ASTNode* left;
@@ -124,6 +128,8 @@ static const char* ASTNodeTypeNames[] = {
     "_EQUALS",
     "_NEQUALS",
     "_FUNCTION_CALL",
+
+    "_NOT",
 
     "_INC",
     "_DEC",
