@@ -32,15 +32,17 @@ extern "C" {
 
 // Compiler options and state
 typedef struct CompilerContext {
-    bool emitAssembly;
-    bool emitLLVM;
+   bool emitAssembly;
+   bool emitLLVM;
 
-    char* outputFilename;
+   char* outputFilename;
 
-    char* inputFile;
+   char* inputFile;
 
-    char* sourceText;
+   char* sourceText;
     
+   int optimization;
+
 } CompilerContext;
 
 

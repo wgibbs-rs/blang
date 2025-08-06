@@ -58,7 +58,7 @@ static void malloc_err() { fatal_error("failed to allocate space for an AST node
 
 %type <node> function 
 %type <node> statement_list statement 
-%type <node> expression declaration 
+%type <node> expression declaration parameters
 %type <node> array_reference else block;
 
 %left '+' '-'
@@ -173,7 +173,7 @@ statement:
       $$ = node;
    }
 
-   |  IDENTIFIER '(' declaration ')' ';' { 
+   |  IDENTIFIER '(' parameters ')' ';' { 
       ASTNode* node = malloc(sizeof(ASTNode));
       if (!node) malloc_err();
       node->type = _FUNCTION_CALL;
@@ -449,6 +449,25 @@ block:
    '{' statement_list '}' { $$ = $2; }
    | statement { $$ = $1; }
    ;
+
+parameters:
+   /* empty */ {
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = STOP;
+      $$ = node;
+   }
+   | expression {
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (!node) malloc_err();
+      node->type = STOP;
+      $1->successor = node;
+      $$ = $1;
+   }
+   | expression ',' parameters {
+      $1->successor = $3;
+      $$ = $1;
+   }
 
 
 array_reference:

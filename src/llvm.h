@@ -47,6 +47,7 @@ void generate_llvm_ir();
 
 void initialize_llvm();
 
+void optimize();
 
 void generate_binary();
 void export_ir();

@@ -43,7 +43,8 @@ void preprocess_text_input(char *text);
 CompilerContext ctx = (CompilerContext){
    .emitAssembly = false,
    .emitLLVM = false,
-   .outputFilename = "a.out"
+   .outputFilename = "a.out",
+   .optimization = 0,
 };
 
 
@@ -87,6 +88,21 @@ void parse_arguments(int argc, char *argv[]) {
          ctx.outputFilename = argv[i + 1];
          i++;
       }
+
+
+      else if (strcmp(argv[i], "-O0") == 0)
+         ctx.optimization = 0;
+      else if (strcmp(argv[i], "-O1") == 0)
+         ctx.optimization = 1;
+      else if (strcmp(argv[i], "-O2") == 0)
+         ctx.optimization = 2;
+      else if (strcmp(argv[i], "-O3") == 0)
+         ctx.optimization = 3;
+      else if (strcmp(argv[i], "-Os") == 0)
+         ctx.optimization = 4;
+      else if (strcmp(argv[i], "-Oz") == 0)
+         ctx.optimization = 5;
+
 
       else { 
          if (argv[i][0] == '-') { fatal_error("unknown argument: \'%s\'\n", argv[i]); }

@@ -61,7 +61,6 @@ extern "C" void initialize_llvm() {
 
 extern "C" void export_asm() {
 
-
    std::string targetTriple = llvm::sys::getDefaultTargetTriple();
    TheModule->setTargetTriple(targetTriple);
 
@@ -117,7 +116,10 @@ extern "C" void export_ir() {
       TheModule->print(dest, nullptr); // Print IR to file
 }
 
+
 extern "C" void generate_binary() {
+
+   optimize(); // Apply any optimizations (will return if -O0)
 
    std::string targetTriple = llvm::sys::getDefaultTargetTriple();
    TheModule->setTargetTriple(targetTriple);
