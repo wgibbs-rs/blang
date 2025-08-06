@@ -13,3 +13,5 @@ _deps
 /bin/*
 
 /assets/*
+
+.DS_Store
