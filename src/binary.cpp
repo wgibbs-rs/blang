@@ -61,6 +61,8 @@ extern "C" void initialize_llvm() {
 
 extern "C" void export_asm() {
 
+   optimize(); // Apply any optimizations (will return if -O0)
+
    std::string targetTriple = llvm::sys::getDefaultTargetTriple();
    TheModule->setTargetTriple(targetTriple);
 
@@ -80,7 +82,7 @@ extern "C" void export_asm() {
 
    // Prepare output file
    std::error_code EC;
-   llvm::raw_fd_ostream dest("output.s", EC, llvm::sys::fs::OF_None);
+   llvm::raw_fd_ostream dest(ctx.outputFilename, EC, llvm::sys::fs::OF_None);
 
    if (EC) {
       llvm::errs() << "Could not open file: " << EC.message() << "\n";
@@ -107,6 +109,9 @@ extern "C" void export_asm() {
 
 
 extern "C" void export_ir() {
+
+   optimize(); // Apply any optimizations (will return if -O0)
+
    std::error_code EC;
    llvm::raw_fd_ostream dest("output.ll", EC, llvm::sys::fs::OF_None);
 
