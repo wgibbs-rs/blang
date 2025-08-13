@@ -53,6 +53,12 @@ static llvm::Value *LogErrorV(const char *Str) {
   return nullptr;
 }
 
+
+static inline llvm::Value* value_of(llvm::Value* alloca) {
+   return Builder->CreateLoad(llvm::Type::getInt64Ty(*TheContext), alloca, "load");
+}
+
+
 /** 
  * Stores whether a function being processed includes a return statement at the end.
  * If not, return(0); is added.
@@ -125,13 +131,19 @@ static llvm::Value* add_expression(ASTNode* node) {
          }
       case ASTNode::_INC:
          {
-            llvm::Value* inc = Builder->CreateAdd(NamedValues[node->string], llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "inctmp");
+            llvm::Value* inc = Builder->CreateAdd(
+               value_of(NamedValues[node->string]), 
+               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), 
+               "inctmp");
             Builder->CreateStore(inc, NamedValues[node->string]);
             return Builder->CreateSub(inc, llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "lesser_inc");
          }
       case ASTNode::_DEC:
          {
-            llvm::Value* dec = Builder->CreateSub(NamedValues[node->string], llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "dectmp");
+            llvm::Value* dec = Builder->CreateSub(
+               value_of(NamedValues[node->string]), 
+               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), 
+               "dectmp");
             Builder->CreateStore(dec, NamedValues[node->string]);
             return Builder->CreateAdd(dec, llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "greater_dec");
          }
@@ -140,7 +152,7 @@ static llvm::Value* add_expression(ASTNode* node) {
          return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*TheContext), node->integer);
          break;
       case ASTNode::_VARIABLE:
-         return Builder->CreateLoad(llvm::Type::getInt64Ty(*TheContext), NamedValues[node->string], "loadtmp");
+         return value_of(NamedValues[node->string]);
          break;
       default:
          break;
@@ -150,9 +162,6 @@ static llvm::Value* add_expression(ASTNode* node) {
 
 }
 
-/*
- * To compress an i64 into an i1, we can do (a != 0).
-*/
 
 static void add_statement(ASTNode* node) {
 
@@ -268,14 +277,20 @@ static void add_statement(ASTNode* node) {
          break;
       case ASTNode::_INC:
          {
-            llvm::Value* inc = Builder->CreateAdd(NamedValues[node->string], llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "inctmp");
+            llvm::Value* inc = Builder->CreateAdd(
+               value_of(NamedValues[node->string]), 
+               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), 
+               "inctmp");
             Builder->CreateStore(inc, NamedValues[node->string]);
             add_statement(node->successor);
             break;
          }
       case ASTNode::_DEC:
          {
-            llvm::Value* dec = Builder->CreateSub(NamedValues[node->string], llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "dectmp");
+            llvm::Value* dec = Builder->CreateSub(
+               value_of(NamedValues[node->string]), 
+               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), 
+               "dectmp");
             Builder->CreateStore(dec, NamedValues[node->string]);
             add_statement(node->successor);
             break;
@@ -329,7 +344,7 @@ static void add_function(ASTNode* node) {
 }
 
 static void add_global_variable(ASTNode* node) {
-
+   // TODO
 }
 
 
