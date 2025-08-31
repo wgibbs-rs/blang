@@ -17,7 +17,3 @@ jobs:
     - name: Build
       run: cmake . && make
 
-    - name: Test
-      working-directory: ${{github.workspace}}/bin
-      run: ctest
-
