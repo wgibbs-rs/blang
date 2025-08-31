@@ -5,7 +5,7 @@ name: blang
 on: [push, pull_request]
 
 jobs:
-  macos-test-and-build:
+  macos-build:
     runs-on: macOS-latest
 
     steps:
@@ -16,4 +16,10 @@ jobs:
 
     - name: Build
       run: cmake . && make
+
+    - name: Save build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-out
+        path: ./bin/blang
 
