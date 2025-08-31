@@ -18,7 +18,7 @@ jobs:
       run: cmake . && make
 
     - name: Save build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-out
         path: ./bin/blang
@@ -38,7 +38,7 @@ jobs:
         run: cmake . && cmake --build .
 
       - name: Save build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-out
           path: ./bin/blang.exe
