@@ -23,3 +23,22 @@ jobs:
         name: macos-out
         path: ./bin/blang
 
+  windows-build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          choco install llvm flex bison -y
+          refreshenv
+
+      - name: Build
+        run: cmake . && cmake --build .
+
+      - name: Save build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-out
+          path: ./bin/blang.exe
