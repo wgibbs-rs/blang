@@ -15,7 +15,7 @@ jobs:
       run: brew install flex bison llvm
 
     - name: Build
-      run: cmake bin && make -C bin
+      run: cmake . && make
 
     - name: Test
       working-directory: ${{github.workspace}}/bin
