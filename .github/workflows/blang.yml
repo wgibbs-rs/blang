@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          choco install llvm flex bison -y
+          choco install winflexbison3 -y
           refreshenv
 
       - name: Build
@@ -41,4 +41,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-out
-          path: ./bin/blang.exe
+          path: ./blang.exe
