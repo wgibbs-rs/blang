@@ -42,6 +42,8 @@ std::unique_ptr<llvm::Module> TheModule;
 
 
 std::map<std::string, llvm::Value *> NamedValues;
+std::map<std::string, llvm::Value *> ExtrnValues;
+
 
 
 std::map<std::string, llvm::Function *> FunctionValues;
@@ -152,8 +154,10 @@ static llvm::Value* add_expression(ASTNode* node) {
          return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*TheContext), node->integer);
          break;
       case ASTNode::_VARIABLE:
-         return value_of(NamedValues[node->string]);
-         break;
+         {
+            return value_of(NamedValues[node->string]);
+            break;
+         }
       default:
          break;
    }
@@ -179,7 +183,7 @@ static void add_statement(ASTNode* node) {
                add_statement(node->list.next);
             }
             else if (node->list.variableType == VariableType::VAR_EXTRN) {
-               NamedValues[node->list.title] = new llvm::GlobalVariable(
+               ExtrnValues[node->list.title] = new llvm::GlobalVariable(
                   *TheModule,
                   llvm::Type::getInt64Ty(*TheContext),
                   false,
@@ -261,7 +265,6 @@ static void add_statement(ASTNode* node) {
             break;
          }
       case ASTNode::_LABEL:
-         printf("Created a label.");
          BasicBlockValues[node->string] = llvm::BasicBlock::Create(*TheContext, node->string, Builder->GetInsertBlock()->getParent());
          Builder->CreateBr(BasicBlockValues[node->string]);
          Builder->SetInsertPoint(BasicBlockValues[node->string]);
@@ -306,23 +309,28 @@ static void add_statement(ASTNode* node) {
 static void add_function(ASTNode* node) {
 
 
+   // Create an array of Int64Ty's. Does not store their information.
    std::vector<llvm::Type*> list;
    for ( ASTNode* currentArg = node->function.args; 
          currentArg; 
          currentArg = currentArg->list.next
    ) list.push_back(llvm::Type::getInt64Ty(*TheContext));
 
-   
-   llvm::FunctionType *funcType = list.size() == 0 
-      ?  llvm::FunctionType::get(
-            llvm::Type::getInt64Ty(*TheContext),
-            false
-         )
-      :  llvm::FunctionType::get(
-            llvm::Type::getInt64Ty(*TheContext),
-            list,
-            false
-         );
+   // Create the function type, including arguments if any.
+   llvm::FunctionType *funcType;
+   if (list.size() == 0 ) 
+   {
+      funcType = llvm::FunctionType::get(
+         llvm::Type::getInt64Ty(*TheContext),
+         false
+      );
+   } else {
+      funcType = llvm::FunctionType::get(
+         llvm::Type::getInt64Ty(*TheContext),
+         list,
+         false
+      );
+   }
 
    llvm::Function *function = llvm::Function::Create(
       funcType,
@@ -337,16 +345,16 @@ static void add_function(ASTNode* node) {
 
    add_statement(node->function.statements); // Begin adding statements to module.
 
-   // If no return statement is made, then return 0;
-   if (!functionDoesReturn) 
-      Builder->CreateRet(llvm::ConstantInt::get(llvm::Type::getInt64Ty(*TheContext), 0));
-
+   // If no return statement is made, then return undefined information.
+   if (!functionDoesReturn) {
+      llvm::Value* undefined_value = llvm::UndefValue::get(Builder->getInt64Ty());
+      Builder->CreateRet(undefined_value);
+   }
 }
 
 static void add_global_variable(ASTNode* node) {
    // TODO
 }
-
 
 static void analyze_ast() {
 
@@ -360,8 +368,6 @@ static void analyze_ast() {
    if (!foundMainFunction) fatal_error("no entry point.");
 
 }
-
-
 
 extern "C" void generate_llvm_ir() {
 

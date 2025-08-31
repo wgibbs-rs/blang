@@ -11,8 +11,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install dependencies
+      run: brew install flex bison llvm
+
     - name: Build
-      run: cmake --build ${{github.workspace}}/bin
+      run: cmake bin && make -C bin
 
     - name: Test
       working-directory: ${{github.workspace}}/bin
