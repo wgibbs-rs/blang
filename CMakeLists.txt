@@ -66,6 +66,7 @@ add_executable(blang
 
 # Now target-specific commands
 target_include_directories(blang PRIVATE ${LLVM_INCLUDE_DIRS})
+target_include_directories(blang PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_definitions(blang PRIVATE ${LLVM_DEFINITIONS})
 target_compile_options(blang PRIVATE -fno-rtti)
 target_link_libraries(blang PRIVATE ${llvm_libs} ${FLEX_LIBRARIES})

@@ -21,9 +21,9 @@
 
 %{
 #include <stdio.h>
-#include "./../src/ast.h"
+#include "ast.h"
 
-#include "./../src/error.h"
+#include "error.h"
 
 extern void yyerror(const char *s);
 extern int yylex(void);
