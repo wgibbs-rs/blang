@@ -51,7 +51,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y flex bison llvm cmake make g++
+      run: sudo apt-get update && sudo apt-get install -y flex bison llvm cmake make g++ libfl-dev
 
     - name: Build
       run: cmake . && make
