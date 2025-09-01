@@ -30,15 +30,34 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: |
-          choco install winflexbison3 -y
-          refreshenv
+        run: choco install winflexbison3 -y
+
+      - name: Configure with CMake
+        run: cmake -B build -S .
 
       - name: Build
-        run: cmake . && cmake --build .
+        run: cmake --build build --config Release
 
       - name: Save build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-out
-          path: ./blang.exe
+          path: build/Release/blang.exe
+
+  linux-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y flex bison llvm cmake make g++
+
+    - name: Build
+      run: cmake . && make
+
+    - name: Save build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-out
+        path: ./bin/blang
