@@ -93,7 +93,13 @@ extern "C" void export_asm() {
    llvm::legacy::PassManager pass;
 
    // Set file type: object file (.o)
-   llvm::CodeGenFileType fileType = llvm::CodeGenFileType::AssemblyFile;
+#if defined(__APPLE__)
+    // macOS (old API)
+    llvm::CodeGenFileType fileType = llvm::CodeGenFileType::AssemblyFile;
+#else
+    // Linux, Windows (new API)
+    llvm::CodeGenFileType fileType = llvm::CGFT_AssemblyFile;
+#endif
 
    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, fileType)) {
       llvm::errs() << "TargetMachine can't emit a file of this type\n";
@@ -156,7 +162,11 @@ extern "C" void generate_binary() {
    llvm::legacy::PassManager pass;
 
    // Set file type: object file (.o)
+#if defined(__APPLE__)
    llvm::CodeGenFileType fileType = llvm::CodeGenFileType::ObjectFile;
+#else
+   llvm::CodeGenFileType fileType = llvm::CGFT_ObjectFile;
+#endif
 
    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, fileType)) {
       llvm::errs() << "TargetMachine can't emit a file of this type\n";
