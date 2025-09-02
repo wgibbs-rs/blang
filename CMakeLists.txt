@@ -32,19 +32,19 @@ FLEX_TARGET(Lexer src/lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.c)
 # Make Flex depend on Bison (so y.tab.h / parser.h is generated first)
 ADD_FLEX_BISON_DEPENDENCY(Lexer Parser)
 
-if (APPLE)
-    llvm_map_components_to_libnames(llvm_libs
-        Core Support Target
-        ARM AVR Hexagon MSP430 Mips PowerPC RISCV WebAssembly X86 XCore VE
-        SystemZ Sparc SPIRV NVPTX LoongArch Lanai BPF AArch64 AMDGPU
-    )
-else()
-    llvm_map_components_to_libnames(llvm_libs
-        Core Support Target
-        ARM AVR Hexagon MSP430 Mips PowerPC RISCV WebAssembly X86 XCore VE
-        SystemZ Sparc NVPTX LoongArch Lanai BPF AArch64 AMDGPU
-    )
-endif()
+llvm_map_components_to_libnames(llvm_libs
+    Passes
+    
+    X86AsmParser
+    X86CodeGen
+    X86Desc
+    X86Info
+    
+    AArch64AsmParser
+    AArch64CodeGen
+    AArch64Desc
+    AArch64Info
+)
 
 # Include directories for generated headers
 include_directories(${CMAKE_CURRENT_BINARY_DIR} include)

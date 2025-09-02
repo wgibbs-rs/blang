@@ -51,11 +51,17 @@ extern "C" void initialize_llvm() {
    TheModule = std::make_unique<llvm::Module>(ctx.inputFile, *TheContext);
 
    // Initialize all targets (only do this once in your program)
-   llvm::InitializeAllTargetInfos();
-   llvm::InitializeAllTargets();
-   llvm::InitializeAllTargetMCs();
-   llvm::InitializeAllAsmParsers();
-   llvm::InitializeAllAsmPrinters();
+   LLVMInitializeX86TargetInfo();
+   LLVMInitializeX86Target();
+   LLVMInitializeX86TargetMC();
+   LLVMInitializeX86AsmParser();
+   LLVMInitializeX86AsmPrinter();
+   
+   LLVMInitializeAArch64TargetInfo();
+   LLVMInitializeAArch64Target();
+   LLVMInitializeAArch64TargetMC();
+   LLVMInitializeAArch64AsmParser();
+   LLVMInitializeAArch64AsmPrinter();
    
 }
 
