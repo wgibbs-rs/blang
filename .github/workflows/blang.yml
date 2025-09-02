@@ -21,28 +21,25 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: macos-out
-        path: ./bin/blang
+        path: ./blang
 
   windows-build:
     runs-on: windows-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Install dependencies
-        run: choco install winflexbison3 -y
-
-      - name: Configure with CMake
-        run: cmake -B build -S .
-
+        run: |
+          choco install winflexbison3
+          choco install llvm
       - name: Build
-        run: cmake --build build --config Release
-
+        run: |
+          cmake .
+          cmake --build .
       - name: Save build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-out
-          path: build/Release/blang.exe
+          path: ./blang.exe
 
   linux-build:
     runs-on: ubuntu-latest
