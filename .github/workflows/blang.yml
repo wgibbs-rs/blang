@@ -26,17 +26,17 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
+      - name: Install vcpkg
         run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+      - name: Install dependencies with vcpkg
+        run: |
+          .\vcpkg\vcpkg install llvm[tools]:x64-windows
           choco install winflexbison3
-          choco install llvm
-      - name: Set LLVM environment
-        run: |
-          echo "LLVM_DIR=C:\Program Files\LLVM\lib\cmake\llvm" >> $env:GITHUB_ENV
-          echo "C:\Program Files\LLVM\bin" >> $env:GITHUB_PATH
       - name: Build
         run: |
-          cmake . -DLLVM_DIR="C:\Program Files\LLVM\lib\cmake\llvm"
+          cmake . -DCMAKE_TOOLCHAIN_FILE=.\vcpkg\scripts\buildsystems\vcpkg.cmake
           cmake --build .
       - name: Save build artifacts
         uses: actions/upload-artifact@v4
