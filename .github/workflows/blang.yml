@@ -7,7 +7,6 @@ on: [push, pull_request]
 jobs:
   macos-build:
     runs-on: macOS-latest
-
     steps:
     - uses: actions/checkout@v4
 
@@ -31,9 +30,13 @@ jobs:
         run: |
           choco install winflexbison3
           choco install llvm
+      - name: Set LLVM environment
+        run: |
+          echo "LLVM_DIR=C:\Program Files\LLVM\lib\cmake\llvm" >> $env:GITHUB_ENV
+          echo "C:\Program Files\LLVM\bin" >> $env:GITHUB_PATH
       - name: Build
         run: |
-          cmake .
+          cmake . -DLLVM_DIR="C:\Program Files\LLVM\lib\cmake\llvm"
           cmake --build .
       - name: Save build artifacts
         uses: actions/upload-artifact@v4
@@ -43,7 +46,6 @@ jobs:
 
   linux-build:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
 
