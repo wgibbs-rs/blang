@@ -40,12 +40,18 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/IR/LegacyPassManager.h>
 
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Analysis/AliasAnalysis.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Utils.h"
 
 #include <llvm/TargetParser/Host.h>
 
+// Optimize TheModule with the provided optimization flags (-O3, -Os, etc)
+void optimize();
 
 extern "C" void initialize_llvm() {
-
    TheContext = std::make_unique<llvm::LLVMContext>();
    Builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*TheContext));
    TheModule = std::make_unique<llvm::Module>(ctx.inputFile, *TheContext);
@@ -62,11 +68,9 @@ extern "C" void initialize_llvm() {
    LLVMInitializeAArch64TargetMC();
    LLVMInitializeAArch64AsmParser();
    LLVMInitializeAArch64AsmPrinter();
-   
 }
 
 extern "C" void export_asm() {
-
    optimize(); // Apply any optimizations (will return if -O0)
 
    std::string targetTriple = llvm::sys::getDefaultTargetTriple();
@@ -100,10 +104,8 @@ extern "C" void export_asm() {
 
    // Set file type: object file (.o)
 #if defined(__APPLE__)
-    // macOS (old API)
     llvm::CodeGenFileType fileType = llvm::CodeGenFileType::AssemblyFile;
 #else
-    // Linux, Windows (new API)
     llvm::CodeGenFileType fileType = llvm::CGFT_AssemblyFile;
 #endif
 
@@ -114,14 +116,10 @@ extern "C" void export_asm() {
 
    pass.run(*TheModule);
    dest.flush();
-
-   llvm::outs() << "Wrote " << ctx.outputFilename << "\n";
-
 }
 
 
 extern "C" void export_ir() {
-
    optimize(); // Apply any optimizations (will return if -O0)
 
    std::error_code EC;
@@ -135,7 +133,6 @@ extern "C" void export_ir() {
 
 
 extern "C" void generate_binary() {
-
    optimize(); // Apply any optimizations (will return if -O0)
 
    std::string targetTriple = llvm::sys::getDefaultTargetTriple();
@@ -181,10 +178,40 @@ extern "C" void generate_binary() {
 
    pass.run(*TheModule);
    dest.flush();
-
-   llvm::outs() << "Wrote " << ctx.outputFilename << "\n";
 }
 
 
+void optimize() {
+   if (!ctx.optimization) return;
 
+   // Create analysis managers
+   llvm::LoopAnalysisManager LAM;
+   llvm::FunctionAnalysisManager FAM;
+   llvm::CGSCCAnalysisManager CGAM;
+   llvm::ModuleAnalysisManager MAM;
 
+   // Create pass builder
+   llvm::PassBuilder PB;
+
+   // Register analysis passes
+   PB.registerModuleAnalyses(MAM);
+   PB.registerCGSCCAnalyses(CGAM);
+   PB.registerFunctionAnalyses(FAM);
+   PB.registerLoopAnalyses(LAM);
+   PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+   llvm::ModulePassManager MPM;
+   // Create optimization pipeline
+   if (ctx.optimization == 1)       // Mild optimization 
+      MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O1);
+   else if (ctx.optimization == 2)  // Moderate optimization
+      MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+   else if (ctx.optimization == 3)  // Aggressive optimization
+      MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O3);
+   else if (ctx.optimization == 4)  // Optimize for size
+      MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::Os);
+   else if (ctx.optimization == 5)  // Aggressively optimize for size
+      MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::Oz);
+
+   MPM.run(*TheModule, MAM);
+}

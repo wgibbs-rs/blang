@@ -21,10 +21,6 @@
 
 /// This file is used to create intermediate representation code for LLVM.
 
-#include "llvm.h"
-#include "ast.h"
-#include "error.h"
-
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
@@ -36,30 +32,28 @@
 #include <cstring>
 #include <iostream>
 
+#include "llvm.h"
+#include "ast.h"
+#include "error.h"
+
 std::unique_ptr<llvm::LLVMContext> TheContext;
 std::unique_ptr<llvm::IRBuilder<>> Builder;
 std::unique_ptr<llvm::Module> TheModule;
 
-
 std::map<std::string, llvm::Value *> NamedValues;
 std::map<std::string, llvm::Value *> ExtrnValues;
 
-
-
 std::map<std::string, llvm::Function *> FunctionValues;
 std::map<std::string, llvm::BasicBlock *> BasicBlockValues;
-
 
 static llvm::Value *LogErrorV(const char *Str) {
   llvm::errs() << "error: " << Str << "\n";
   return nullptr;
 }
 
-
 static inline llvm::Value* value_of(llvm::Value* alloca) {
    return Builder->CreateLoad(llvm::Type::getInt64Ty(*TheContext), alloca, "load");
 }
-
 
 /** 
  * Stores whether a function being processed includes a return statement at the end.
@@ -120,7 +114,6 @@ static llvm::Value* add_expression(ASTNode* node) {
          }
       case ASTNode::_FUNCTION_CALL:
          break;
-
       case ASTNode::_NOT:
          {
             llvm::Value* not_value = Builder->CreateICmpEQ(
@@ -163,9 +156,7 @@ static llvm::Value* add_expression(ASTNode* node) {
    }
 
    return nullptr;
-
 }
-
 
 static void add_statement(ASTNode* node) {
 

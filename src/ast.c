@@ -192,6 +192,7 @@ static void print_node(ASTNode* node, int depth) {
 
 
 void print_ast() {
-    for (int i = 0; i < ast_length; i++) print_node(generated_ast[i], 0);
+    for (int i = 0; i < ast_length; i++) 
+        print_node(generated_ast[i], 0);
     printf("\n");
 }

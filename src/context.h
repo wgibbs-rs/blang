@@ -26,29 +26,19 @@
 extern "C" {
 #endif
 
-
 #include <stdbool.h>
-
 
 // Compiler options and state
 typedef struct CompilerContext {
    bool emitAssembly;
    bool emitLLVM;
-
    char* outputFilename;
-
    char* inputFile;
-
    char* sourceText;
-    
    int optimization;
-
 } CompilerContext;
 
-
-// Declare a global or external context variable, so other files can use it
 extern CompilerContext ctx;
-
 
 #ifdef __cplusplus
 }

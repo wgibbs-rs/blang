@@ -24,6 +24,9 @@
 #include <stdlib.h>
 #include "error.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((cold))
+#endif
 void error(const char *text, ...) {
    va_list args;
    va_start(args, text);
@@ -34,16 +37,14 @@ void error(const char *text, ...) {
 }
 
 #if defined(__GNUC__) || defined(__clang__)
-__attribute__((noreturn))
+__attribute__((noreturn, cold))
 #endif
 void fatal_error(const char *text, ...) {
    va_list args;
    va_start(args, text);
    printf("bcc: " RED "error: " RESET);
    vprintf(text, args);
-   printf("\n");
    va_end(args);
-
-   printf("bcc: " RED "error: " RESET "compilation failed\n");
+   printf("\nbcc: " RED "error: " RESET "compilation failed\n");
    exit(1);
 }

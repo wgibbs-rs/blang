@@ -22,7 +22,6 @@
 
 main () {
    auto a;
-   a = !a;
 }
 
 

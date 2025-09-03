@@ -22,18 +22,12 @@
 #ifndef LLVM_WRAPPER_H
 #define LLVM_WRAPPER_H
 
-
-
 #ifdef __cplusplus
-
-
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Value.h>
 #include <map>
-
-
 
 extern std::unique_ptr<llvm::LLVMContext> TheContext;
 extern std::unique_ptr<llvm::IRBuilder<>> Builder;
@@ -44,11 +38,8 @@ extern "C" {
 #endif
 
 void generate_llvm_ir();
-
 void initialize_llvm();
-
 void optimize();
-
 void generate_binary();
 void export_ir();
 void export_asm();
