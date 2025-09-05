@@ -25,20 +25,15 @@
 #include <stdio.h>
 
 #include "llvm.h"
-
 #include "context.h"
 #include "error.h"
-
 #include "ast.h"
+#include "opt.h"
 
-extern int yyparse(void);  // declare Bison parser function
-extern int yy_scan_string(const char *str);  // From Flex
-
-void parse_arguments(int argc, char **argv);
-char* read_file(char *file);
-
-void preprocess_text_input(char *text);
-
+extern int yyparse(void);                       // declare Bison parser function
+extern int yy_scan_string(const char *str);     // lex the file for keywords
+void parse_arguments(int argc, char **argv);    // parse the arguments provided to BLang
+char* read_file(const char *filename);          // Read an input file into a char*.
 
 CompilerContext ctx = (CompilerContext){
    .emitAssembly = false,
@@ -47,11 +42,8 @@ CompilerContext ctx = (CompilerContext){
    .optimization = 0,
 };
 
-
 int main(int argc, char *argv[]) {
-
    parse_arguments(argc, argv);
-
    initialize_llvm();
 
    yy_scan_string(ctx.sourceText);           // Feed input
@@ -68,27 +60,25 @@ int main(int argc, char *argv[]) {
    else 
       generate_binary();
    
-
    return 0;
 }
 
 
 void parse_arguments(int argc, char *argv[]) {
+   if (argc == 0)
+      printf("--help function should print here. TODO.");
 
-   // Loop through each argument. Start at 1 to skip "./blang"
    for (int i = 1; i < argc; ++i) {
-
       // If "-S" is passed, the program will return assembly instead of machine code.
       if (strcmp(argv[i], "-S") == 0) { ctx.emitAssembly = true; }
 
       // If "-emit-llvm" is passed, the program will return LLVM IR instead of machine code.
-      else if (strcmp(argv[i], "-emit-llvm") == 0) { ctx.emitLLVM = true; }
+      else if (strcmp(argv[i], "--emit-llvm") == 0) { ctx.emitLLVM = true; }
 
       else if (strcmp(argv[i], "-o") == 0) {
          ctx.outputFilename = argv[i + 1];
          i++;
       }
-
 
       else if (strcmp(argv[i], "-O0") == 0)
          ctx.optimization = 0;
@@ -103,7 +93,6 @@ void parse_arguments(int argc, char *argv[]) {
       else if (strcmp(argv[i], "-Oz") == 0)
          ctx.optimization = 5;
 
-
       else { 
          if (argv[i][0] == '-') { fatal_error("unknown argument: \'%s\'\n", argv[i]); }
          else { 
@@ -114,28 +103,19 @@ void parse_arguments(int argc, char *argv[]) {
    }
 }
 
-char* read_file(char *filename) {
-   FILE* file = fopen(filename, "rb");  // Open in binary mode
-   if (!file) {
-      fatal_error("failed to open file \"%s\"", filename);
-   }
+char* read_file(const char *filename) {
+   FILE *f = fopen(filename, "rb");
+   if (!f) fatal_error("failed to open file \"%s\"", filename);
 
-   // Seek to end to get file size
-   fseek(file, 0, SEEK_END);
-   long length = ftell(file);
-   rewind(file);  // Go back to beginning
+   fseek(f, 0, SEEK_END);
+   long n = ftell(f);
+   rewind(f);
 
-   // Allocate memory for content + null terminator
-   char* buffer = (char*)malloc(length + 1);
-   if (!buffer) {
-      fclose(file);
-      fatal_error("failed to allocate memory for contents of file \"%s\"", filename);
-   }
+   char *buf = malloc(n + 1);
+   if (!buf) fatal_error("failed to allocate memory for \"%s\"", filename);
 
-   // Read into buffer
-   size_t bytesRead = fread(buffer, 1, length, file);
-   buffer[bytesRead] = '\0';  // Null-terminate
-
-   fclose(file);
-   return buffer;
+   fread(buf, 1, n, f);
+   buf[n] = '\0';
+   fclose(f);
+   return buf;
 }

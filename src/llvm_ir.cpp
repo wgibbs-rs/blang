@@ -19,8 +19,6 @@
    3. This notice may not be removed or altered from any source distribution.
 */
 
-/// This file is used to create intermediate representation code for LLVM.
-
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
@@ -35,6 +33,7 @@
 #include "llvm.h"
 #include "ast.h"
 #include "error.h"
+#include "opt.h"
 
 std::unique_ptr<llvm::LLVMContext> TheContext;
 std::unique_ptr<llvm::IRBuilder<>> Builder;
@@ -46,22 +45,17 @@ std::map<std::string, llvm::Value *> ExtrnValues;
 std::map<std::string, llvm::Function *> FunctionValues;
 std::map<std::string, llvm::BasicBlock *> BasicBlockValues;
 
-static llvm::Value *LogErrorV(const char *Str) {
-  llvm::errs() << "error: " << Str << "\n";
-  return nullptr;
-}
-
-static inline llvm::Value* value_of(llvm::Value* alloca) {
+GCC_HOT static inline llvm::Value* value_of(llvm::Value* alloca) {
    return Builder->CreateLoad(llvm::Type::getInt64Ty(*TheContext), alloca, "load");
 }
 
 /** 
  * Stores whether a function being processed includes a return statement at the end.
- * If not, return(0); is added.
+ * If not, return(undef); is added.
  */
 static bool functionDoesReturn = false;
 
-static llvm::Value* add_expression(ASTNode* node) {
+GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
 
    switch (node->type) {
       case ASTNode::_ADD:
@@ -147,18 +141,15 @@ static llvm::Value* add_expression(ASTNode* node) {
          return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*TheContext), node->integer);
          break;
       case ASTNode::_VARIABLE:
-         {
-            return value_of(NamedValues[node->string]);
-            break;
-         }
+         return value_of(NamedValues[node->string]);
+         break;
       default:
          break;
    }
-
    return nullptr;
 }
 
-static void add_statement(ASTNode* node) {
+GCC_HOT static void add_statement(ASTNode* node) {
 
    switch (node->type) {
       case ASTNode::STOP: return;
@@ -290,7 +281,7 @@ static void add_statement(ASTNode* node) {
             break;
          }
       default:
-         fatal_error("unknown statement.");
+         fatal_error("unknown statement");
          break;
    }
 }

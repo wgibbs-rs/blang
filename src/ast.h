@@ -104,7 +104,6 @@ typedef struct ASTNode {
     struct ASTNode* successor;
 } ASTNode;
 
-
 static const char* ASTNodeTypeNames[] = {
     "_GLOBAL_DECLARATION",
     "_AUTO",
@@ -142,7 +141,6 @@ static const char* ASTNodeTypeNames[] = {
     "STOP"
 };
 
-
 extern ASTNode** generated_ast;
 extern int ast_length;
 
@@ -150,10 +148,8 @@ extern void append_statement(ASTNode* node);
 
 extern void print_ast();
 
-
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif // AST_H

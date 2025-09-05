@@ -23,6 +23,7 @@
 %{
 #include <stdio.h>
 #include "parser.h"
+#include "error.h"
 %}
 
 
@@ -106,6 +107,6 @@
 [ \t\n\r]
 
 
-.     { printf("blang: \033[1;31merror:\033[0m unexpected character \"%c\"\n", yytext[0]); }
+.     { error("unexpected character \"%c\"", yytext[0]); }
 
 %%

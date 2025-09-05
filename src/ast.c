@@ -19,14 +19,10 @@
    3. This notice may not be removed or altered from any source distribution.
 */
 
-
-
 #include "ast.h"
-
+#include "error.h"
 #include <stdlib.h>
 #include <stdio.h>
-
-
 
 ASTNode** generated_ast = NULL;
 int ast_length = 0;
@@ -41,28 +37,22 @@ void append_statement(ASTNode* node) {
     ast_length++;
 }
 
-
-
-
-static void print_indent(int depth) {
+static inline void print_indent(int depth) {
     if (depth == 0) return;
     for (int i = 0; i < depth; i++) printf("\t");
 }
 
-static void print_node(ASTNode* node, int depth) {
+static inline void print_node(ASTNode* node, int depth) {
     if (!node) { print_indent(depth); printf("NODE IS NULL\n"); return; }
 
-    if (node->type == STOP) {
-        print_indent(depth);
-        printf("STOP\n");
-        return;
-    }
+    if (node->type == STOP) return;
 
     print_indent(depth);
     if (node->type >= 0 && node->type < sizeof(ASTNodeTypeNames)/sizeof(ASTNodeTypeNames[0]))
         printf("Type: %s\n", ASTNodeTypeNames[node->type]);
     else
-        printf("Type: UNKNOWN (%d)\n", node->type);
+        fatal_error("Type: UNKNOWN (%d)\n", node->type);
+
     switch (node->type) {
         case _GLOBAL_DECLARATION:
             print_indent(depth);
@@ -187,9 +177,7 @@ static void print_node(ASTNode* node, int depth) {
     }
 
     if (node->successor) print_node(node->successor, depth);
-
 }
-
 
 void print_ast() {
     for (int i = 0; i < ast_length; i++) 

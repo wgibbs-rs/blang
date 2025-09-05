@@ -23,11 +23,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "error.h"
+#include "opt.h"
 
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((cold))
-#endif
-void error(const char *text, ...) {
+#define RED "\033[1;31m"
+#define RESET "\033[0m"
+
+GCC_COLD void error(const char *text, ...) {
    va_list args;
    va_start(args, text);
    printf("bcc: " RED "error: " RESET);
@@ -36,15 +37,12 @@ void error(const char *text, ...) {
    va_end(args);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((noreturn, cold))
-#endif
-void fatal_error(const char *text, ...) {
+GCC_NORETURN GCC_COLD void fatal_error(const char *text, ...) {
    va_list args;
    va_start(args, text);
    printf("bcc: " RED "error: " RESET);
    vprintf(text, args);
    va_end(args);
    printf("\nbcc: " RED "error: " RESET "compilation failed\n");
-   exit(1);
+   exit(EXIT_FAILURE);
 }

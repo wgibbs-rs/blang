@@ -26,8 +26,6 @@
 extern "C" {
 #endif
 
-#include <stdbool.h>
-
 // Compiler options and state
 typedef struct CompilerContext {
    bool emitAssembly;

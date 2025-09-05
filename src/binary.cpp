@@ -19,14 +19,12 @@
    3. This notice may not be removed or altered from any source distribution.
 */
 
-/// This file is used to create machine code with LLVM.
-
 #include <iostream>
-
 
 #include "llvm.h"
 #include "context.h"
 #include "error.h"
+#include "opt.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -118,7 +116,6 @@ extern "C" void export_asm() {
    dest.flush();
 }
 
-
 extern "C" void export_ir() {
    optimize(); // Apply any optimizations (will return if -O0)
 
@@ -130,7 +127,6 @@ extern "C" void export_ir() {
    else
       TheModule->print(dest, nullptr); // Print IR to file
 }
-
 
 extern "C" void generate_binary() {
    optimize(); // Apply any optimizations (will return if -O0)
@@ -180,9 +176,8 @@ extern "C" void generate_binary() {
    dest.flush();
 }
 
-
-void optimize() {
-   if (!ctx.optimization) return;
+inline void optimize() {
+   if (GCC_LIKELY(!ctx.optimization)) return;
 
    // Create analysis managers
    llvm::LoopAnalysisManager LAM;

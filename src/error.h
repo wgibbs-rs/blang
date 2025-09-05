@@ -22,9 +22,6 @@
 #ifndef ERROR_H
 #define ERROR_H
 
-#define RED "\033[1;31m"
-#define RESET "\033[0m"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
