@@ -71,7 +71,7 @@ extern "C" void initialize_llvm() {
 extern "C" void export_asm() {
    optimize(); // Apply any optimizations (will return if -O0)
 
-   std::string targetTriple = llvm::sys::getDefaultTargetTriple();
+   std::basic_string<char> targetTriple = llvm::sys::getDefaultTargetTriple();
    TheModule->setTargetTriple(targetTriple);
 
    std::string error;
@@ -131,7 +131,7 @@ extern "C" void export_ir() {
 extern "C" void generate_binary() {
    optimize(); // Apply any optimizations (will return if -O0)
 
-   std::string targetTriple = llvm::sys::getDefaultTargetTriple();
+   std::basic_string<char> targetTriple = llvm::sys::getDefaultTargetTriple();
    TheModule->setTargetTriple(targetTriple);
 
    std::string error;
