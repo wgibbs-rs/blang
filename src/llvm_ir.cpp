@@ -301,18 +301,16 @@ static void add_function(ASTNode* node) {
    // Create the function type, including arguments if any.
    llvm::FunctionType *funcType;
    if (list.size() == 0 ) 
-   {
       funcType = llvm::FunctionType::get(
          llvm::Type::getInt64Ty(*TheContext),
          false
       );
-   } else {
+   else 
       funcType = llvm::FunctionType::get(
          llvm::Type::getInt64Ty(*TheContext),
          list,
          false
       );
-   }
 
    llvm::Function *function = llvm::Function::Create(
       funcType,

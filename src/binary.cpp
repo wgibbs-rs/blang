@@ -46,9 +46,6 @@
 
 #include <llvm/TargetParser/Host.h>
 
-// Optimize TheModule with the provided optimization flags (-O3, -Os, etc)
-void optimize();
-
 extern "C" void initialize_llvm() {
    TheContext = std::make_unique<llvm::LLVMContext>();
    Builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*TheContext));
@@ -69,8 +66,6 @@ extern "C" void initialize_llvm() {
 }
 
 extern "C" void export_asm() {
-   optimize(); // Apply any optimizations (will return if -O0)
-
    std::basic_string<char> targetTriple = llvm::sys::getDefaultTargetTriple();
    TheModule->setTargetTriple(targetTriple);
 
@@ -117,8 +112,6 @@ extern "C" void export_asm() {
 }
 
 extern "C" void export_ir() {
-   optimize(); // Apply any optimizations (will return if -O0)
-
    std::error_code EC;
    llvm::raw_fd_ostream dest("output.ll", EC, llvm::sys::fs::OF_None);
 
@@ -129,8 +122,6 @@ extern "C" void export_ir() {
 }
 
 extern "C" void generate_binary() {
-   optimize(); // Apply any optimizations (will return if -O0)
-
    std::basic_string<char> targetTriple = llvm::sys::getDefaultTargetTriple();
    TheModule->setTargetTriple(targetTriple);
 
@@ -176,7 +167,7 @@ extern "C" void generate_binary() {
    dest.flush();
 }
 
-inline void optimize() {
+extern "C" void optimize() {
    if (GCC_LIKELY(!ctx.optimization)) return;
 
    // Create analysis managers

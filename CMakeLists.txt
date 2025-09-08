@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
-project(blang C CXX)
+project(blang VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+
 
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -12,7 +13,6 @@ if (APPLE)
     list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/Bison")
     list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/llvm")
 endif()
-
 
 find_package(FLEX REQUIRED)
 find_package(BISON REQUIRED)
@@ -67,6 +67,13 @@ add_executable(blang
     ${SOURCES}
     ${FLEX_Lexer_OUTPUTS}
     ${BISON_Parser_OUTPUTS}
+)
+
+target_compile_definitions(blang PRIVATE
+    BLANG_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+    BLANG_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+    BLANG_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+    BLANG_VERSION_STRING="${PROJECT_VERSION}"
 )
 
 # Now target-specific commands

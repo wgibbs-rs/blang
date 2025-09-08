@@ -30,6 +30,7 @@ extern "C" {
 typedef struct CompilerContext {
    bool emitAssembly;
    bool emitLLVM;
+   bool dumpAST;
    char* outputFilename;
    char* inputFile;
    char* sourceText;

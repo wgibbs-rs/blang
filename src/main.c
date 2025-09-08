@@ -34,24 +34,29 @@ extern int yyparse(void);                       // declare Bison parser function
 extern int yy_scan_string(const char *str);     // lex the file for keywords
 void parse_arguments(int argc, char **argv);    // parse the arguments provided to BLang
 char* read_file(const char *filename);          // Read an input file into a char*.
+void print_help();
 
 CompilerContext ctx = (CompilerContext){
    .emitAssembly = false,
    .emitLLVM = false,
+   .dumpAST = false,
    .outputFilename = "a.out",
    .optimization = 0,
 };
 
 int main(int argc, char *argv[]) {
    parse_arguments(argc, argv);
-   initialize_llvm();
 
    yy_scan_string(ctx.sourceText);           // Feed input
    yyparse();                                // Start parsing
 
-   print_ast();
+   if (ctx.dumpAST) print_ast();
+
+   initialize_llvm();
 
    generate_llvm_ir();
+
+   optimize();
 
    if (ctx.emitLLVM) 
       export_ir();
@@ -65,15 +70,15 @@ int main(int argc, char *argv[]) {
 
 
 void parse_arguments(int argc, char *argv[]) {
-   if (argc == 0)
-      printf("--help function should print here. TODO.");
+   if (argc == 1)
+      print_help();
 
    for (int i = 1; i < argc; ++i) {
-      // If "-S" is passed, the program will return assembly instead of machine code.
       if (strcmp(argv[i], "-S") == 0) { ctx.emitAssembly = true; }
-
-      // If "-emit-llvm" is passed, the program will return LLVM IR instead of machine code.
-      else if (strcmp(argv[i], "--emit-llvm") == 0) { ctx.emitLLVM = true; }
+      else if (strcmp(argv[i], "-emit-llvm") == 0) { ctx.emitLLVM = true; }
+      else if (strcmp(argv[i], "-ast-dump") == 0) { ctx.dumpAST = true; }
+      
+      else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) { print_help(); }
 
       else if (strcmp(argv[i], "-o") == 0) {
          ctx.outputFilename = argv[i + 1];
@@ -94,7 +99,7 @@ void parse_arguments(int argc, char *argv[]) {
          ctx.optimization = 5;
 
       else { 
-         if (argv[i][0] == '-') { fatal_error("unknown argument: \'%s\'\n", argv[i]); }
+         if (argv[i][0] == '-') { fatal_error("unknown argument: \'%s\'", argv[i]); }
          else { 
             ctx.inputFile = argv[i];
             ctx.sourceText = read_file(argv[i]); 
@@ -118,4 +123,28 @@ char* read_file(const char *filename) {
    buf[n] = '\0';
    fclose(f);
    return buf;
+}
+
+void print_help() {
+    printf(
+      "Usage: blang [options] <source files>\n"
+      "\n"
+      "Blang Compiler " BLANG_VERSION_STRING "\n"
+      "A simple compiler for the B programming language.\n"
+      "\n"
+      "Options:\n"
+      "  -h, --help            Show this help message and exit\n"
+      // "  -v, --version         Show compiler version\n"
+      "  -o <file>             Specify output file name (default: a.out)\n"
+      "  -S                    Compile to assembly code only\n"
+      "  -emit-llvm           Emit LLVM IR instead of machine code\n"
+      "  -dump-ast            Output the abstract syntax tree (AST)\n"
+      "  -O0, -O1, -O2, -O3    Optimization level (default: -O0)\n"
+      "\n"
+      "Examples:\n"
+      "  blang main.b            Compile and link main.b to a.out\n"
+      "  blang -S main.b         Generate assembly code from main.b\n"
+      "  blang -O2 -o prog main.b  Compile main.b with optimization level 2 to prog\n"
+    );
+    exit(0);
 }

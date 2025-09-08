@@ -31,7 +31,7 @@
 GCC_COLD void error(const char *text, ...) {
    va_list args;
    va_start(args, text);
-   printf("bcc: " RED "error: " RESET);
+   printf("blang: " RED "error: " RESET);
    vprintf(text, args);
    printf("\n");
    va_end(args);
@@ -40,9 +40,9 @@ GCC_COLD void error(const char *text, ...) {
 GCC_NORETURN GCC_COLD void fatal_error(const char *text, ...) {
    va_list args;
    va_start(args, text);
-   printf("bcc: " RED "error: " RESET);
+   printf("blang: " RED "error: " RESET);
    vprintf(text, args);
    va_end(args);
-   printf("\nbcc: " RED "error: " RESET "compilation failed\n");
+   printf("\nblang: " RED "error: " RESET "compilation failed\n");
    exit(EXIT_FAILURE);
 }
