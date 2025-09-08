@@ -11,6 +11,9 @@ jobs:
     - name: Install dependencies
       run: brew install flex bison llvm
 
+    - name: Test LLVM Version
+      run: brew list --versions llvm
+
     - name: Build
       run: cmake . && make
 
