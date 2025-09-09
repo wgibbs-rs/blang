@@ -66,21 +66,26 @@ extern "C" void initialize_llvm() {
 }
 
 extern "C" void export_asm() {
-   std::basic_string<char> targetTriple = llvm::sys::getDefaultTargetTriple();
-   TheModule->setTargetTriple(targetTriple);
+   // Construct a Triple from the default target triple string
+   llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
 
+   // Set the module's target triple (takes llvm::Triple now)
+   TheModule->setTargetTriple(triple);
+
+   // Look up the target with the Triple
    std::string error;
-   const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
-
+   auto target = llvm::TargetRegistry::lookupTarget(triple, error);
    if (!target) {
       llvm::errs() << "Failed to lookup target: " << error << "\n";
       return;
    }
 
+   // Create the TargetMachine using the Triple (string overload is deprecated)
    llvm::TargetOptions opt;
    auto RM = std::optional<llvm::Reloc::Model>();
-   llvm::TargetMachine* targetMachine = target->createTargetMachine(targetTriple, "generic", "", opt, RM);
+   auto targetMachine = target->createTargetMachine(triple, "generic", "", opt, RM);
 
+   // Update the module data layout
    TheModule->setDataLayout(targetMachine->createDataLayout());
 
    // Prepare output file
@@ -122,21 +127,26 @@ extern "C" void export_ir() {
 }
 
 extern "C" void generate_binary() {
-   std::basic_string<char> targetTriple = llvm::sys::getDefaultTargetTriple();
-   TheModule->setTargetTriple(targetTriple);
+   // Construct a Triple from the default target triple string
+   llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
 
+   // Set the module's target triple (takes llvm::Triple now)
+   TheModule->setTargetTriple(triple);
+
+   // Look up the target with the Triple
    std::string error;
-   const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
-
+   auto target = llvm::TargetRegistry::lookupTarget(triple, error);
    if (!target) {
       llvm::errs() << "Failed to lookup target: " << error << "\n";
       return;
    }
 
+   // Create the TargetMachine using the Triple (string overload is deprecated)
    llvm::TargetOptions opt;
    auto RM = std::optional<llvm::Reloc::Model>();
-   llvm::TargetMachine* targetMachine = target->createTargetMachine(targetTriple, "generic", "", opt, RM);
+   auto targetMachine = target->createTargetMachine(triple, "generic", "", opt, RM);
 
+   // Update the module data layout
    TheModule->setDataLayout(targetMachine->createDataLayout());
 
    // Prepare output file

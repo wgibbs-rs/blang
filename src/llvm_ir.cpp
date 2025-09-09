@@ -326,10 +326,8 @@ static void add_function(ASTNode* node) {
    add_statement(node->function.statements); // Begin adding statements to module.
 
    // If no return statement is made, then return undefined information.
-   if (!functionDoesReturn) {
-      llvm::Value* undefined_value = llvm::UndefValue::get(Builder->getInt64Ty());
-      Builder->CreateRet(undefined_value);
-   }
+   if (!functionDoesReturn)
+      Builder->CreateRet(llvm::UndefValue::get(Builder->getInt64Ty()));
 }
 
 static void add_global_variable(ASTNode* node) {
