@@ -18,20 +18,16 @@
       misrepresented as being the original software.
    3. This notice may not be removed or altered from any source distribution.
 */
-
-
 %{
 #include <stdio.h>
 #include "parser.h"
 #include "error.h"
 %}
 
-
 %%
 
 "/*"([^*]*|\*+[^*/])*"\*/"       { /* Block comment */       }
 "//".*                           { /* Single-line comment */ }
-
 
 \'[^\']\' { 
    yylval.integer = (int)yytext[1];
@@ -53,15 +49,11 @@
 "*"         {  return '*';       }
 "&"         {  return '&';       }
 
-"auto"      {  return AUTO;      }
-"extrn"     {  return EXTRN;     }
-
 "="         {  return '=';       }
 
 "+"         {  return '+';       }
 "-"         {  return '-';       }
 "/"         {  return '/';       }
-
 
 "+="        {  return PLUSEQ;    }
 "-="        {  return MINUSEQ;   }
@@ -97,15 +89,14 @@
 ".read"     {  yylval.str = "read"; return IDENTIFIER;  }
 ".write"    {  yylval.str = "write"; return IDENTIFIER;  }
 
-
-
+"auto"      {  return AUTO;      }
+"extrn"     {  return EXTRN;     }
 
 [0-9]+      {  yylval.integer = atoi(yytext); return NUMBER; }
 
 [a-zA-Z_][a-zA-Z0-9_]*    { yylval.str = strdup(yytext); return IDENTIFIER; }
 
 [ \t\n\r]
-
 
 .     { error("unexpected character \"%c\"", yytext[0]); }
 

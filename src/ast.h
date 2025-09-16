@@ -57,6 +57,7 @@ typedef struct ASTNode {
         _FUNCTION_CALL,
 
         _NOT,
+        _NEGATIVE,
 
         _INC,
         _DEC,

@@ -126,7 +126,7 @@ extern "C" void export_ir() {
       TheModule->print(dest, nullptr); // Print IR to file
 }
 
-extern "C" void generate_binary() {
+extern "C" void export_bin() {
    // Construct a Triple from the default target triple string
    llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
 

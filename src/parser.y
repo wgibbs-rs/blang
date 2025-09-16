@@ -227,7 +227,6 @@ statement:
       node->string = $2;
       $$ = node;
    }
-
    ;
 
 expression:
@@ -239,6 +238,21 @@ expression:
       if (GCC_UNLIKELY(!node)) malloc_err();
       node->type = _NOT;
       node->inner = $2;
+      $$ = node;
+   }
+
+   | '-' expression {
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (GCC_UNLIKELY(!node)) malloc_err();
+      node->type = _MULTIPLY;
+      node->factors.left = $2;
+
+      ASTNode* negative = malloc(sizeof(ASTNode));
+      if (GCC_UNLIKELY(!negative)) malloc_err();
+      negative->type = _NUMBER;
+      negative->integer = -1; // Multiply by -1.
+
+      node->factors.right = negative;
       $$ = node;
    }
 

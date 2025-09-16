@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
    else if (ctx.emitAssembly) 
       export_asm();
    else 
-      generate_binary();
+      export_bin();
    
    return 0;
 }
