@@ -31,7 +31,7 @@
 
 \'[^\']\' { 
    yylval.integer = (int)yytext[1];
-   return CHARACTER;
+   return F_CHARACTER;
 }
 
 "["         {  return '[';       }
@@ -55,46 +55,46 @@
 "-"         {  return '-';       }
 "/"         {  return '/';       }
 
-"+="        {  return PLUSEQ;    }
-"-="        {  return MINUSEQ;   }
-"*="        {  return TIMESEQ;   }
-"/="        {  return DIVEQ;     }
+"+="        {  return F_PLUSEQ;    }
+"-="        {  return F_MINUSEQ;   }
+"*="        {  return F_TIMESEQ;   }
+"/="        {  return F_DIVEQ;     }
 
-"=="        {  return EQ;        }
-"!="        {  return NEQ;       }
-">="        {  return GTEQ;      }
-"<="        {  return LTEQ;      }
+"=="        {  return F_EQ;        }
+"!="        {  return F_NEQ;       }
+">="        {  return F_GTEQ;      }
+"<="        {  return F_LTEQ;      }
 ">"         {  return '>';       }
 "<"         {  return '<';       }
 
 "!"         {  return '!';       }
 
-"&&"        {  return AND;       }
-"||"        {  return OR;        }
+"&&"        {  return F_AND;       }
+"||"        {  return F_OR;        }
 
-"<<"        {  return LSHIFT;    }
-">>"        {  return RSHIFT;    }
+"<<"        {  return F_LSHIFT;    }
+">>"        {  return F_RSHIFT;    }
 
-"++"        {  return INC;       }
-"--"        {  return DEC;       }
+"++"        {  return F_INC;       }
+"--"        {  return F_DEC;       }
 
-"if"        {  return IF;        }
-"else"      {  return ELSE;      }
-"while"     {  return WHILE;     }
+"if"        {  return F_IF;        }
+"else"      {  return F_ELSE;      }
+"while"     {  return F_WHILE;     }
 
-"goto"      {  return GOTO;      }
+"goto"      {  return F_GOTO;      }
 
-"return"    {  return RETURN;    }
+"return"    {  return F_RETURN;    }
 
-".read"     {  yylval.str = "read"; return IDENTIFIER;  }
-".write"    {  yylval.str = "write"; return IDENTIFIER;  }
+".read"     {  yylval.str = "read"; return F_IDENTIFIER;  }
+".write"    {  yylval.str = "write"; return F_IDENTIFIER;  }
 
-"auto"      {  return AUTO;      }
-"extrn"     {  return EXTRN;     }
+"auto"      {  return F_AUTO;      }
+"extrn"     {  return F_EXTRN;     }
 
-[0-9]+      {  yylval.integer = atoi(yytext); return NUMBER; }
+[0-9]+      {  yylval.integer = atoi(yytext); return F_NUMBER; }
 
-[a-zA-Z_][a-zA-Z0-9_]*    { yylval.str = strdup(yytext); return IDENTIFIER; }
+[a-zA-Z_][a-zA-Z0-9_]*    { yylval.str = strdup(yytext); return F_IDENTIFIER; }
 
 [ \t\n\r]
 

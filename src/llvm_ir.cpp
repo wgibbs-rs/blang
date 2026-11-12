@@ -58,57 +58,61 @@ static bool functionDoesReturn = false;
 GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
 
    switch (node->type) {
-      case ASTNode::_ADD:
+      case ASTNode::ADD:
          return Builder->CreateAdd(add_expression(node->factors.left), add_expression(node->factors.right), "addtmp");
          break;
-      case ASTNode::_SUBTRACT:
+      case ASTNode::SUBTRACT:
          return Builder->CreateSub(add_expression(node->factors.left), add_expression(node->factors.right), "subtmp");
          break;
-      case ASTNode::_MULTIPLY:
+      case ASTNode::MULTIPLY:
          return Builder->CreateMul(add_expression(node->factors.left), add_expression(node->factors.right), "multmp");
          break;
-      case ASTNode::_DIVIDE:
+      case ASTNode::DIVIDE:
          return Builder->CreateSDiv(add_expression(node->factors.left), add_expression(node->factors.right), "sdivtmp");
          break;
-      case ASTNode::_GTEQ:
+      case ASTNode::GTEQ:
          {
             llvm::Value* cmp = Builder->CreateICmpSGE(add_expression(node->factors.left), add_expression(node->factors.right), "sgetmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::_LTEQ:
+      case ASTNode::LTEQ:
          {
             llvm::Value* cmp = Builder->CreateICmpSLE(add_expression(node->factors.left), add_expression(node->factors.right), "sletmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::_GREATER:
+      case ASTNode::GREATER:
          {
             llvm::Value* cmp = Builder->CreateICmpSGT(add_expression(node->factors.left), add_expression(node->factors.right), "sgttmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::_LESS:
+      case ASTNode::LESS:
          {
             llvm::Value* cmp = Builder->CreateICmpSLT(add_expression(node->factors.left), add_expression(node->factors.right), "slttmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::_EQUALS:
+      case ASTNode::EQUALS:
          {
             llvm::Value* cmp = Builder->CreateICmpEQ(add_expression(node->factors.left), add_expression(node->factors.right), "eqtmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::_NEQUALS:
+      case ASTNode::NEQUALS:
          {
             llvm::Value* cmp = Builder->CreateICmpNE(add_expression(node->factors.left), add_expression(node->factors.right), "netmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::_FUNCTION_CALL:
-         break;
-      case ASTNode::_NOT:
+      case ASTNode::FUNCTION_CALL:
+         {
+            // This will need to first test if the function is defined or extrn.
+            // Then, we'll either call the function or generate a call.
+            break;
+         }
+      case ASTNode::NOT:
          {
             llvm::Value* not_value = Builder->CreateICmpEQ(
                add_expression(node->inner), 
@@ -118,7 +122,7 @@ GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
             return Builder->CreateZExt(not_value, llvm::Type::getInt64Ty(*TheContext), "i64_not");
             break;
          }
-      case ASTNode::_INC:
+      case ASTNode::INC:
          {
             llvm::Value* inc = Builder->CreateAdd(
                value_of(NamedValues[node->string]), 
@@ -127,7 +131,7 @@ GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
             Builder->CreateStore(inc, NamedValues[node->string]);
             return Builder->CreateSub(inc, llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "lesser_inc");
          }
-      case ASTNode::_DEC:
+      case ASTNode::DEC:
          {
             llvm::Value* dec = Builder->CreateSub(
                value_of(NamedValues[node->string]), 
@@ -137,10 +141,10 @@ GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
             return Builder->CreateAdd(dec, llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "greater_dec");
          }
          break;
-      case ASTNode::_NUMBER:
+      case ASTNode::NUMBER:
          return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*TheContext), node->integer);
          break;
-      case ASTNode::_VARIABLE:
+      case ASTNode::VARIABLE:
          return value_of(NamedValues[node->string]);
          break;
       default:
@@ -153,12 +157,12 @@ GCC_HOT static void add_statement(ASTNode* node) {
 
    switch (node->type) {
       case ASTNode::STOP: return;
-      case ASTNode::_AUTO:
-      case ASTNode::_EXTRN:
+      case ASTNode::AUTO:
+      case ASTNode::EXTRN:
          add_statement(node->list.next);
          add_statement(node->successor);
          break;
-      case ASTNode::_VARIABLE:
+      case ASTNode::VARIABLE:
          {
             if (node->list.variableType == VariableType::VAR_AUTO) {
                NamedValues[node->list.title] = Builder->CreateAlloca(llvm::Type::getInt64Ty(*TheContext), nullptr, node->list.title);
@@ -176,13 +180,13 @@ GCC_HOT static void add_statement(ASTNode* node) {
             }
             break;
          }
-      case ASTNode::_ASSIGNMENT:
+      case ASTNode::ASSIGNMENT:
          {
             Builder->CreateStore(add_expression(node->list.next), NamedValues[node->list.title]);
             add_statement(node->successor);
             break;
          }
-      case ASTNode::_WHILE_LOOP:
+      case ASTNode::WHILE_LOOP:
          { 
             llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "while_then", Builder->GetInsertBlock()->getParent());
             llvm::BasicBlock *Merge = llvm::BasicBlock::Create(*TheContext, "while_merge", Builder->GetInsertBlock()->getParent());
@@ -207,7 +211,7 @@ GCC_HOT static void add_statement(ASTNode* node) {
             add_statement(node->successor);
             break;
          }
-      case ASTNode::_IF:
+      case ASTNode::IF:
          {
 
             llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "if_then", Builder->GetInsertBlock()->getParent());
@@ -246,21 +250,21 @@ GCC_HOT static void add_statement(ASTNode* node) {
 
             break;
          }
-      case ASTNode::_LABEL:
+      case ASTNode::LABEL:
          BasicBlockValues[node->string] = llvm::BasicBlock::Create(*TheContext, node->string, Builder->GetInsertBlock()->getParent());
          Builder->CreateBr(BasicBlockValues[node->string]);
          Builder->SetInsertPoint(BasicBlockValues[node->string]);
          add_statement(node->successor);
          break;
-      case ASTNode::_GOTO:
+      case ASTNode::GOTO:
          Builder->CreateBr(BasicBlockValues[node->string]);
          add_statement(node->successor);
          break;
-      case ASTNode::_RETURN:
+      case ASTNode::RETURN:
          Builder->CreateRet(add_expression(node->list.next));
          functionDoesReturn = true;
          break;
-      case ASTNode::_INC:
+      case ASTNode::INC:
          {
             llvm::Value* inc = Builder->CreateAdd(
                value_of(NamedValues[node->string]), 
@@ -270,7 +274,7 @@ GCC_HOT static void add_statement(ASTNode* node) {
             add_statement(node->successor);
             break;
          }
-      case ASTNode::_DEC:
+      case ASTNode::DEC:
          {
             llvm::Value* dec = Builder->CreateSub(
                value_of(NamedValues[node->string]), 
@@ -286,11 +290,7 @@ GCC_HOT static void add_statement(ASTNode* node) {
    }
 }
 
-
-
 static void add_function(ASTNode* node) {
-
-
    // Create an array of Int64Ty's. Does not store their information.
    std::vector<llvm::Type*> list;
    for ( ASTNode* currentArg = node->function.args; 
@@ -335,16 +335,14 @@ static void add_global_variable(ASTNode* node) {
 }
 
 static void analyze_ast() {
-
    bool foundMainFunction = false;
    
    for (int i = 0; i < ast_length; i++)
-      if (generated_ast[i]->type == ASTNode::_FUNCTION)
+      if (generated_ast[i]->type == ASTNode::FUNCTION)
          if (strcmp(generated_ast[i]->function.title, "main") == 0)
             foundMainFunction = true;
 
-   if (!foundMainFunction) fatal_error("no entry point.");
-
+   if (!foundMainFunction) fatal_error("no entry point");
 }
 
 extern "C" void generate_llvm_ir() {
@@ -353,10 +351,10 @@ extern "C" void generate_llvm_ir() {
 
    for (int i = 0; i < ast_length; i++) {
       switch (generated_ast[i]->type) {
-         case ASTNode::_FUNCTION:
+         case ASTNode::FUNCTION:
             add_function(generated_ast[i]);
             break;
-         case ASTNode::_GLOBAL_DECLARATION:
+         case ASTNode::GLOBAL_DECLARATION:
             add_global_variable(generated_ast[i]);
             break;
          default:
