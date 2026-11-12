@@ -22,7 +22,6 @@
 #include <iostream>
 
 #include "llvm.h"
-#include "context.h"
 #include "error.h"
 #include "opt.h"
 
@@ -46,10 +45,10 @@
 
 #include <llvm/TargetParser/Host.h>
 
-extern "C" void initialize_llvm() {
+extern "C" void initialize_llvm(char *inputFile) {
    TheContext = std::make_unique<llvm::LLVMContext>();
    Builder = std::unique_ptr<llvm::IRBuilder<>>(new llvm::IRBuilder<>(*TheContext));
-   TheModule = std::make_unique<llvm::Module>(ctx.inputFile, *TheContext);
+   TheModule = std::make_unique<llvm::Module>(inputFile, *TheContext);
 
    // Initialize all targets (only do this once in your program)
    LLVMInitializeX86TargetInfo();
@@ -65,7 +64,7 @@ extern "C" void initialize_llvm() {
    LLVMInitializeAArch64AsmPrinter();
 }
 
-extern "C" void export_asm() {
+extern "C" void export_asm(char *outputFilename) {
    // Construct a Triple from the default target triple string
    llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
 
@@ -90,7 +89,7 @@ extern "C" void export_asm() {
 
    // Prepare output file
    std::error_code EC;
-   llvm::raw_fd_ostream dest(ctx.outputFilename, EC, llvm::sys::fs::OF_None);
+   llvm::raw_fd_ostream dest(outputFilename, EC, llvm::sys::fs::OF_None);
 
    if (EC) {
       llvm::errs() << "Could not open file: " << EC.message() << "\n";
@@ -112,9 +111,9 @@ extern "C" void export_asm() {
    dest.flush();
 }
 
-extern "C" void export_ir() {
+extern "C" void export_ir(char *outputFilename) {
    std::error_code EC;
-   llvm::raw_fd_ostream dest("output.ll", EC, llvm::sys::fs::OF_None);
+   llvm::raw_fd_ostream dest(outputFilename, EC, llvm::sys::fs::OF_None);
 
    if (EC)
       fatal_error("Could not open file: %s", EC.message().c_str());
@@ -122,7 +121,7 @@ extern "C" void export_ir() {
       TheModule->print(dest, nullptr); // Print IR to file
 }
 
-extern "C" void export_bin() {
+extern "C" void export_bin(char *outputFilename) {
    // Construct a Triple from the default target triple string
    llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
 
@@ -147,7 +146,7 @@ extern "C" void export_bin() {
 
    // Prepare output file
    std::error_code EC;
-   llvm::raw_fd_ostream dest(ctx.outputFilename, EC, llvm::sys::fs::OF_None);
+   llvm::raw_fd_ostream dest(outputFilename, EC, llvm::sys::fs::OF_None);
 
    if (EC) {
       llvm::errs() << "Could not open file: " << EC.message() << "\n";
@@ -168,9 +167,7 @@ extern "C" void export_bin() {
    dest.flush();
 }
 
-extern "C" void optimize() {
-   if (GCC_LIKELY(!ctx.optimization)) return;
-
+extern "C" void optimize(char optimizationLevel) {
    // Create analysis managers
    llvm::LoopAnalysisManager LAM;
    llvm::FunctionAnalysisManager FAM;
@@ -189,11 +186,11 @@ extern "C" void optimize() {
 
    llvm::ModulePassManager MPM;
    // Create optimization pipeline
-   if (ctx.optimization == '1')       // Mild optimization 
+   if (optimizationLevel == '1')       // Mild optimization 
       MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O1);
-   else if (ctx.optimization == '2')  // Moderate optimization
+   else if (optimizationLevel == '2')  // Moderate optimization
       MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
-   else if (ctx.optimization == '3')  // Aggressive optimization
+   else if (optimizationLevel == '3')  // Aggressive optimization
       MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O3);
 
    MPM.run(*TheModule, MAM);

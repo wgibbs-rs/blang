@@ -38,13 +38,13 @@ extern "C" {
 #endif
 
 void generate_llvm_ir();
-void initialize_llvm();
+void initialize_llvm(char *inputFile);
 
-void optimize();
+void optimize(char optimizationLevel);
 
-void export_ir();
-void export_asm();
-void export_bin();
+void export_ir(char *outputFileName);
+void export_asm(char *outputFileName);
+void export_bin(char *outputFileName);
 
 #ifdef __cplusplus
 }

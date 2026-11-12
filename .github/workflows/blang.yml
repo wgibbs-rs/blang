@@ -41,14 +41,6 @@ jobs:
         with:
           name: windows-out
           path: ./blang.exe
-      - name: Cache vcpkg
-        uses: actions/cache@v4
-        with:
-          path: |
-            vcpkg/installed
-            vcpkg/buildtrees
-            vcpkg/packages
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
 
   linux-build:
     runs-on: ubuntu-latest

@@ -25,7 +25,6 @@
 #include <stdio.h>
 
 #include "llvm.h"
-#include "context.h"
 #include "error.h"
 #include "ast.h"
 #include "opt.h"
@@ -36,8 +35,18 @@ void parse_arguments(int argc, char **argv);    // parse the arguments provided 
 char* read_file(const char *filename);          // Read an input file into a char*.
 void print_help();
 
+typedef struct CompilerContext {
+   bool emitASM;
+   bool emitLLVM;
+   bool dumpAST;
+   char* outputFilename;
+   char* inputFile;
+   char* sourceText;
+   char optimization;
+} CompilerContext;
+
 CompilerContext ctx = (CompilerContext){
-   .emitAssembly = false,
+   .emitASM = false,
    .emitLLVM = false,
    .dumpAST = false,
    .outputFilename = "a.out",
@@ -45,51 +54,41 @@ CompilerContext ctx = (CompilerContext){
 };
 
 int main(int argc, char *argv[]) {
-   parse_arguments(argc, argv);
-
-   yy_scan_string(ctx.sourceText);           // Feed input
-   yyparse();                                // Start parsing
-
-   if (ctx.dumpAST) print_ast();
-
-   initialize_llvm();
-
-   generate_llvm_ir();
-
-   optimize();
-
-   if (ctx.emitLLVM) 
-      export_ir();
-   else if (ctx.emitAssembly) 
-      export_asm();
-   else 
-      export_bin();
-   
-   return 0;
+   parse_arguments(argc, argv);        // Read command-line arguments; init ctx
+   yy_scan_string(ctx.sourceText);     // Feed input to Flex
+   yyparse();                          // Start parsing
+   if (ctx.dumpAST) print_ast();       // Output the generated AST
+   initialize_llvm(ctx.inputFile);     // Initialize LLVM
+   generate_llvm_ir();                 // Generate the program LLVM IR
+   optimize(ctx.optimization);         // Run optimization passes
+   if (ctx.emitLLVM)                   // Export the IR if ctx.emitLLVM
+      export_ir(ctx.outputFilename);
+   else if (ctx.emitASM)               // Export the ASM if ctx.emitASM
+      export_asm(ctx.outputFilename);
+   else                                // Export the binary if neither emit LLVM/ASM
+      export_bin(ctx.outputFilename);
+   return 0;                           // Return 0
 }
 
-
 void parse_arguments(int argc, char *argv[]) {
-   if (argc == 1)
-      print_help();
-
+   if (argc == 1) print_help();
    for (int i = 1; i < argc; ++i) {
-      if (strcmp(argv[i], "-S") == 0) { ctx.emitAssembly = true; }
+      if (strcmp(argv[i], "-S") == 0) { ctx.emitASM = true; }
       else if (strcmp(argv[i], "--emit-llvm") == 0) { ctx.emitLLVM = true; }
       else if (strcmp(argv[i], "--dump-ast") == 0) { ctx.dumpAST = true; }
       else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) { print_help(); }
-      else if (strcmp(argv[i], "-o") == 0) {
-         ctx.outputFilename = argv[i + 1]; i++;
-      }
-      else if (strcmp(argv[i], "-O") == 0) ctx.optimization = argv[i][2];
-      else { 
-         if (argv[i][0] == '-') { fatal_error("unknown argument: \'%s\'", argv[i]); }
-         else { 
+      else if (strcmp(argv[i], "-o") == 0) { ctx.outputFilename = argv[i + 1]; i++; }
+      else if (strncmp(argv[i], "-O", 2) == 0) ctx.optimization = argv[i][2];
+      else if (argv[i][0] == '-') fatal_error("unknown argument: \'%s\'", argv[i]);
+         else {
             ctx.inputFile = argv[i];
             ctx.sourceText = read_file(argv[i]); 
          }
-      }
    }
+
+   // set the output file name
+   size_t inputFileSize = strlen(ctx.inputFile);
+
 }
 
 char* read_file(const char *filename) {
