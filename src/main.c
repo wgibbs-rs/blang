@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <libgen.h>
 
 #include "llvm.h"
 #include "error.h"
@@ -35,22 +36,16 @@ void parse_arguments(int argc, char **argv);    // parse the arguments provided 
 char* read_file(const char *filename);          // Read an input file into a char*.
 void print_help();
 
-typedef struct CompilerContext {
-   bool emitASM;
-   bool emitLLVM;
-   bool dumpAST;
-   char* outputFilename;
-   char* inputFile;
-   char* sourceText;
-   char optimization;
-} CompilerContext;
-
-CompilerContext ctx = (CompilerContext){
-   .emitASM = false,
-   .emitLLVM = false,
-   .dumpAST = false,
-   .outputFilename = "a.out",
-   .optimization = 0,
+struct {
+    bool emitASM;
+    bool emitLLVM;
+    bool dumpAST;
+    char* outputFilename;
+    char* inputPath;
+    char* sourceText;
+    char optimization;
+} ctx = { 
+   .outputFilename = "a.out"
 };
 
 int main(int argc, char *argv[]) {
@@ -58,7 +53,7 @@ int main(int argc, char *argv[]) {
    yy_scan_string(ctx.sourceText);     // Feed input to Flex
    yyparse();                          // Start parsing
    if (ctx.dumpAST) print_ast();       // Output the generated AST
-   initialize_llvm(ctx.inputFile);     // Initialize LLVM
+   initialize_llvm(ctx.inputPath);     // Initialize LLVM
    generate_llvm_ir();                 // Generate the program LLVM IR
    optimize(ctx.optimization);         // Run optimization passes
    if (ctx.emitLLVM)                   // Export the IR if ctx.emitLLVM
@@ -81,14 +76,18 @@ void parse_arguments(int argc, char *argv[]) {
       else if (strncmp(argv[i], "-O", 2) == 0) ctx.optimization = argv[i][2];
       else if (argv[i][0] == '-') fatal_error("unknown argument: \'%s\'", argv[i]);
          else {
-            ctx.inputFile = argv[i];
+            ctx.inputPath = argv[i];
             ctx.sourceText = read_file(argv[i]); 
          }
    }
 
    // set the output file name
-   size_t inputFileSize = strlen(ctx.inputFile);
-
+   ctx.outputFilename = basename(ctx.inputPath);
+   ctx.outputFilename[strlen(ctx.outputFilename) - 2] = '\0';
+   if (ctx.emitLLVM)
+      strcat(ctx.outputFilename, ".ll");
+   else if (ctx.emitASM)
+      strcat(ctx.outputFilename, ".s");
 }
 
 char* read_file(const char *filename) {

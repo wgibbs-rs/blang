@@ -54,7 +54,7 @@ file(
     "src/main.c"
     "src/error.c"
     "src/ast.c"
-    "src/binary.cpp"
+    "src/llvm_out.cpp"
     "src/llvm_ir.cpp"
 )
 
