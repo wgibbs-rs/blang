@@ -198,16 +198,12 @@ extern "C" void optimize() {
 
    llvm::ModulePassManager MPM;
    // Create optimization pipeline
-   if (ctx.optimization == 1)       // Mild optimization 
+   if (ctx.optimization == '1')       // Mild optimization 
       MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O1);
-   else if (ctx.optimization == 2)  // Moderate optimization
+   else if (ctx.optimization == '2')  // Moderate optimization
       MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
-   else if (ctx.optimization == 3)  // Aggressive optimization
+   else if (ctx.optimization == '3')  // Aggressive optimization
       MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O3);
-   else if (ctx.optimization == 4)  // Optimize for size
-      MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::Os);
-   else if (ctx.optimization == 5)  // Aggressively optimize for size
-      MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::Oz);
 
    MPM.run(*TheModule, MAM);
 }

@@ -19,12 +19,10 @@
    3. This notice may not be removed or altered from any source distribution.
 */
 
-
 main () {
    auto a;
    a = 3;
-   a = 3+-a;
+   a = 3 + (-a);
 }
-
 
 a 'A';

@@ -75,23 +75,13 @@ void parse_arguments(int argc, char *argv[]) {
 
    for (int i = 1; i < argc; ++i) {
       if (strcmp(argv[i], "-S") == 0) { ctx.emitAssembly = true; }
-      else if (strcmp(argv[i], "-emit-llvm") == 0) { ctx.emitLLVM = true; }
-      else if (strcmp(argv[i], "-ast-dump") == 0) { ctx.dumpAST = true; }
-      
+      else if (strcmp(argv[i], "--emit-llvm") == 0) { ctx.emitLLVM = true; }
+      else if (strcmp(argv[i], "--dump-ast") == 0) { ctx.dumpAST = true; }
       else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) { print_help(); }
-
       else if (strcmp(argv[i], "-o") == 0) {
-         ctx.outputFilename = argv[i + 1];
-         i++;
+         ctx.outputFilename = argv[i + 1]; i++;
       }
-
-      else if (strcmp(argv[i], "-O0") == 0) ctx.optimization = 0;
-      else if (strcmp(argv[i], "-O1") == 0) ctx.optimization = 1;
-      else if (strcmp(argv[i], "-O2") == 0) ctx.optimization = 2;
-      else if (strcmp(argv[i], "-O3") == 0) ctx.optimization = 3;
-      else if (strcmp(argv[i], "-Os") == 0) ctx.optimization = 4;
-      else if (strcmp(argv[i], "-Oz") == 0) ctx.optimization = 5;
-
+      else if (strcmp(argv[i], "-O") == 0) ctx.optimization = argv[i][2];
       else { 
          if (argv[i][0] == '-') { fatal_error("unknown argument: \'%s\'", argv[i]); }
          else { 
@@ -131,8 +121,8 @@ void print_help() {
       // "  -v, --version         Show compiler version\n"
       "  -o <file>             Specify output file name (default: a.out)\n"
       "  -S                    Compile to assembly code only\n"
-      "  -emit-llvm           Emit LLVM IR instead of machine code\n"
-      "  -dump-ast            Output the abstract syntax tree (AST)\n"
+      "  --emit-llvm           Emit LLVM IR instead of machine code\n"
+      "  --dump-ast            Output the abstract syntax tree (AST)\n"
       "  -O0, -O1, -O2, -O3    Optimization level (default: -O0)\n"
       "\n"
       "Examples:\n"

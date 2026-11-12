@@ -34,7 +34,7 @@ typedef struct CompilerContext {
    char* outputFilename;
    char* inputFile;
    char* sourceText;
-   int optimization;
+   char optimization;
 } CompilerContext;
 
 extern CompilerContext ctx;

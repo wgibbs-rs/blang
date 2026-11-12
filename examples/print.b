@@ -20,5 +20,5 @@
 */
 
 main() {
-    putchar('a');
+   putchar('a');
 }

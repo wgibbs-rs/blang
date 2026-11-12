@@ -147,8 +147,7 @@ GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
       case ASTNode::VARIABLE:
          return value_of(NamedValues[node->string]);
          break;
-      default:
-         break;
+      default: break;
    }
    return nullptr;
 }
@@ -165,7 +164,11 @@ GCC_HOT static void add_statement(ASTNode* node) {
       case ASTNode::VARIABLE:
          {
             if (node->list.variableType == VariableType::VAR_AUTO) {
-               NamedValues[node->list.title] = Builder->CreateAlloca(llvm::Type::getInt64Ty(*TheContext), nullptr, node->list.title);
+               NamedValues[node->list.title] = 
+                  Builder->CreateAlloca(
+                     llvm::Type::getInt64Ty(*TheContext), 
+                     nullptr, 
+                     node->list.title );
                add_statement(node->list.next);
             }
             else if (node->list.variableType == VariableType::VAR_EXTRN) {
@@ -299,19 +302,10 @@ static void add_function(ASTNode* node) {
    ) list.push_back(llvm::Type::getInt64Ty(*TheContext));
 
    // Create the function type, including arguments if any.
-   llvm::FunctionType *funcType;
-   if (list.size() == 0 ) 
-      funcType = llvm::FunctionType::get(
-         llvm::Type::getInt64Ty(*TheContext),
-         false
-      );
-   else 
-      funcType = llvm::FunctionType::get(
-         llvm::Type::getInt64Ty(*TheContext),
-         list,
-         false
-      );
-
+   llvm::FunctionType *funcType = llvm::FunctionType::get(
+      llvm::Type::getInt64Ty(*TheContext), list, false
+   );
+   
    llvm::Function *function = llvm::Function::Create(
       funcType,
       llvm::Function::ExternalLinkage,
@@ -319,36 +313,30 @@ static void add_function(ASTNode* node) {
       *TheModule
    );
 
-   functionDoesReturn = false; // False, unless proven otherwise.
-
    Builder->SetInsertPoint(llvm::BasicBlock::Create(*TheContext, "entry", function));
 
    add_statement(node->function.statements); // Begin adding statements to module.
 
-   // If no return statement is made, then return undefined information.
-   if (!functionDoesReturn)
-      Builder->CreateRet(llvm::UndefValue::get(Builder->getInt64Ty()));
+   // return undefined information in case no return was made.
+   Builder->CreateRet(llvm::UndefValue::get(Builder->getInt64Ty()));
 }
 
 static void add_global_variable(ASTNode* node) {
    // TODO
+   printf("did not add global variable.\n");
 }
 
 static void analyze_ast() {
    bool foundMainFunction = false;
-   
    for (int i = 0; i < ast_length; i++)
-      if (generated_ast[i]->type == ASTNode::FUNCTION)
-         if (strcmp(generated_ast[i]->function.title, "main") == 0)
-            foundMainFunction = true;
-
-   if (!foundMainFunction) fatal_error("no entry point");
+      if ( generated_ast[i]->type == ASTNode::FUNCTION &&
+           strcmp(generated_ast[i]->function.title, "main") == 0 )
+         return;
+   fatal_error("no entry point");
 }
 
 extern "C" void generate_llvm_ir() {
-
    analyze_ast();
-
    for (int i = 0; i < ast_length; i++) {
       switch (generated_ast[i]->type) {
          case ASTNode::FUNCTION:
@@ -361,7 +349,5 @@ extern "C" void generate_llvm_ir() {
             fatal_error("unrecognized root type \"%s\"\n", ASTNodeTypeNames[generated_ast[i]->type]);
             break;
       }
-
    }
-
 }
