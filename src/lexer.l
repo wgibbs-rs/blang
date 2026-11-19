@@ -26,71 +26,77 @@
 
 %%
 
-"/*"([^*]*|\*+[^*/])*"\*/"       { /* Block comment */       }
-"//".*                           { /* Single-line comment */ }
+"/*"([^*]*|\*+[^*/])*"\*/"          { /* Block comment */       }
+"//".*                              { /* Single-line comment */ }
 
 \'[^\']\' { 
    yylval.integer = (int)yytext[1];
    return F_CHARACTER;
 }
 
-"["         {  return '[';       }
-"]"         {  return ']';       }
+"["         {  return '[';          }
+"]"         {  return ']';          }
 
-"{"         {  return '{';       }
-"}"         {  return '}';       }
-"("         {  return '(';       }
-")"         {  return ')';       }
-":"         {  return ':';       }
-";"         {  return ';';       }
+"{"         {  return '{';          }
+"}"         {  return '}';          }
+"("         {  return '(';          }
+")"         {  return ')';          }
+":"         {  return ':';          }
+";"         {  return ';';          }
 
-","         {  return ',';       }
+","         {  return ',';          }
 
-"*"         {  return '*';       }
-"&"         {  return '&';       }
+"*"         {  return '*';          }
+"&"         {  return '&';          }
 
-"="         {  return '=';       }
+"="         {  return '=';          }
 
-"+"         {  return '+';       }
-"-"         {  return '-';       }
-"/"         {  return '/';       }
+"+"         {  return '+';          }
+"-"         {  return '-';          }
+"/"         {  return '/';          }
 
-"+="        {  return F_PLUSEQ;    }
-"-="        {  return F_MINUSEQ;   }
-"*="        {  return F_TIMESEQ;   }
-"/="        {  return F_DIVEQ;     }
+"+="        {  return F_PLUSEQ;     }
+"-="        {  return F_MINUSEQ;    }
+"*="        {  return F_TIMESEQ;    }
+"/="        {  return F_DIVEQ;      }
 
-"=="        {  return F_EQ;        }
-"!="        {  return F_NEQ;       }
-">="        {  return F_GTEQ;      }
-"<="        {  return F_LTEQ;      }
-">"         {  return '>';       }
-"<"         {  return '<';       }
+"=="        {  return F_EQ;         }
+"!="        {  return F_NEQ;        }
+">="        {  return F_GTEQ;       }
+"<="        {  return F_LTEQ;       }
+">"         {  return '>';          }
+"<"         {  return '<';          }
 
-"!"         {  return '!';       }
+"!"         {  return '!';          }
 
-"&&"        {  return F_AND;       }
-"||"        {  return F_OR;        }
+"&&"        {  return F_AND;        }
+"||"        {  return F_OR;         }
 
-"<<"        {  return F_LSHIFT;    }
-">>"        {  return F_RSHIFT;    }
+"<<"        {  return F_LSHIFT;     }
+">>"        {  return F_RSHIFT;     }
 
-"++"        {  return F_INC;       }
-"--"        {  return F_DEC;       }
+"++"        {  return F_INC;        }
+"--"        {  return F_DEC;        }
 
-"if"        {  return F_IF;        }
-"else"      {  return F_ELSE;      }
-"while"     {  return F_WHILE;     }
+"if"        {  return F_IF;         }
+"else"      {  return F_ELSE;       }
+"while"     {  return F_WHILE;      }
 
-"goto"      {  return F_GOTO;      }
+"switch"    {  return F_SWITCH;     }
+"case"      {  return F_CASE;       }
 
-"return"    {  return F_RETURN;    }
+"goto"      {  return F_GOTO;       }
+
+"return"    {  return F_RETURN;     }
 
 ".read"     {  yylval.str = "read"; return F_IDENTIFIER;  }
 ".write"    {  yylval.str = "write"; return F_IDENTIFIER;  }
 
-"auto"      {  return F_AUTO;      }
-"extrn"     {  return F_EXTRN;     }
+"auto"      {  return F_AUTO;       }
+"extrn"     {  return F_EXTRN;      }
+
+\"([^\\\"\n]|\\.)*\"    { yylval.str = strdup(yytext); return F_STRING; }
+\'([^\\\"\n]|\\.)*\'    { yylval.str = strdup(yytext); return F_CHAR; }
 
 [0-9]+      {  yylval.integer = atoi(yytext); return F_NUMBER; }
 

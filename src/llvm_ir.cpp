@@ -161,98 +161,103 @@ GCC_HOT static void add_statement(ASTNode* node) {
          add_statement(node->list.next);
          add_statement(node->successor);
          break;
+      case ASTNode::FUNCTION_CALL:
+      {
+         printf("Hello!");
+         exit(0);
+      }
       case ASTNode::VARIABLE:
-         {
-            if (node->list.variableType == VariableType::VAR_AUTO) {
-               NamedValues[node->list.title] = 
-                  Builder->CreateAlloca(
-                     llvm::Type::getInt64Ty(*TheContext), 
-                     nullptr, 
-                     node->list.title );
-               add_statement(node->list.next);
-            }
-            else if (node->list.variableType == VariableType::VAR_EXTRN) {
-               ExtrnValues[node->list.title] = new llvm::GlobalVariable(
-                  *TheModule,
-                  llvm::Type::getInt64Ty(*TheContext),
-                  false,
-                  llvm::GlobalValue::ExternalLinkage,
-                  nullptr,
-                  node->list.title
-               );
-            }
-            break;
-         }
-      case ASTNode::ASSIGNMENT:
-         {
-            Builder->CreateStore(add_expression(node->list.next), NamedValues[node->list.title]);
-            add_statement(node->successor);
-            break;
-         }
-      case ASTNode::WHILE_LOOP:
-         { 
-            llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "while_then", Builder->GetInsertBlock()->getParent());
-            llvm::BasicBlock *Merge = llvm::BasicBlock::Create(*TheContext, "while_merge", Builder->GetInsertBlock()->getParent());
-
-            llvm::Value* cond_i1 = Builder->CreateICmpNE(
-               add_expression(node->list.inner), 
-               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)), 
-               "while_cond_i1_1" 
-            );
-            Builder->CreateCondBr(cond_i1, Then, Merge);
-
-            Builder->SetInsertPoint(Then);
+      {
+         if (node->list.variableType == VariableType::VAR_AUTO) {
+            NamedValues[node->list.title] = 
+               Builder->CreateAlloca(
+                  llvm::Type::getInt64Ty(*TheContext), 
+                  nullptr, 
+                  node->list.title );
             add_statement(node->list.next);
-            cond_i1 = Builder->CreateICmpNE(
-               add_expression(node->list.inner), 
-               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)), 
-               "while_cond_i1_2" 
-            );
-            Builder->CreateCondBr(cond_i1, Then, Merge);
-
-            Builder->SetInsertPoint(Merge);
-            add_statement(node->successor);
-            break;
          }
+         else if (node->list.variableType == VariableType::VAR_EXTRN) {
+            ExtrnValues[node->list.title] = new llvm::GlobalVariable(
+               *TheModule,
+               llvm::Type::getInt64Ty(*TheContext),
+               false,
+               llvm::GlobalValue::ExternalLinkage,
+               nullptr,
+               node->list.title
+            );
+         }
+         break;
+      }
+      case ASTNode::ASSIGNMENT:
+      {
+         Builder->CreateStore(add_expression(node->list.next), NamedValues[node->list.title]);
+         add_statement(node->successor);
+         break;
+      }
+      case ASTNode::WHILE_LOOP:
+      { 
+         llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "while_then", Builder->GetInsertBlock()->getParent());
+         llvm::BasicBlock *Merge = llvm::BasicBlock::Create(*TheContext, "while_merge", Builder->GetInsertBlock()->getParent());
+
+         llvm::Value* cond_i1 = Builder->CreateICmpNE(
+            add_expression(node->list.inner), 
+            llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)), 
+            "while_cond_i1_1" 
+         );
+         Builder->CreateCondBr(cond_i1, Then, Merge);
+
+         Builder->SetInsertPoint(Then);
+         add_statement(node->list.next);
+         cond_i1 = Builder->CreateICmpNE(
+            add_expression(node->list.inner), 
+            llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)), 
+            "while_cond_i1_2" 
+         );
+         Builder->CreateCondBr(cond_i1, Then, Merge);
+
+         Builder->SetInsertPoint(Merge);
+         add_statement(node->successor);
+         break;
+      }
       case ASTNode::IF:
-         {
+      {
 
-            llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "if_then", Builder->GetInsertBlock()->getParent());
-            llvm::BasicBlock *Merge = llvm::BasicBlock::Create(*TheContext, "if_merge", Builder->GetInsertBlock()->getParent());
+         llvm::BasicBlock *Then = llvm::BasicBlock::Create(*TheContext, "if_then", Builder->GetInsertBlock()->getParent());
+         llvm::BasicBlock *Merge = llvm::BasicBlock::Create(*TheContext, "if_merge", Builder->GetInsertBlock()->getParent());
 
-            // To set the i64 conditional (if_t.cond) to i1, we perform if_t.cond != 0.
-            llvm::Value* cond_i1 = Builder->CreateICmpNE(
-               add_expression(node->if_t.cond), 
-               llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)), 
-               "cond_i1" 
-            );
-            
-            // Test if statement includes an "else" section
-            if (node->if_t.else_t->type != ASTNode::STOP) {
-               llvm::BasicBlock *Else = llvm::BasicBlock::Create(*TheContext, "if_else", Builder->GetInsertBlock()->getParent());
+         // To set the i64 conditional (if_t.cond) to i1, we perform if_t.cond != 0.
+         llvm::Value* cond_i1 = Builder->CreateICmpNE(
+            add_expression(node->if_t.cond), 
+            llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 0)), 
+            "cond_i1" 
+         );
+         
+         // Test if statement includes an "else" section
+         if (node->if_t.else_t->type != ASTNode::STOP) {
+            llvm::BasicBlock *Else = llvm::BasicBlock::Create(*TheContext, "if_else", Builder->GetInsertBlock()->getParent());
 
-               Builder->CreateCondBr(cond_i1, Then, Else);
+            Builder->CreateCondBr(cond_i1, Then, Else);
 
-               // Write "else" code
-               Builder->SetInsertPoint(Else);
-               add_statement(node->if_t.else_t);
-               if (!Else->getTerminator()) Builder->CreateBr(Merge);
-            
-            }
-            else {
-               Builder->CreateCondBr(cond_i1, Then, Merge);
-            }
-
-            // Write "then" code.
-            Builder->SetInsertPoint(Then);
-            add_statement(node->if_t.statements);
-            if (!Then->getTerminator()) Builder->CreateBr(Merge);
-
-            Builder->SetInsertPoint(Merge);
-            add_statement(node->successor);
-
-            break;
+            // Write "else" code
+            Builder->SetInsertPoint(Else);
+            add_statement(node->if_t.else_t);
+            if (!Else->getTerminator()) Builder->CreateBr(Merge);
+         
          }
+         else {
+            Builder->CreateCondBr(cond_i1, Then, Merge);
+         }
+
+         // Write "then" code.
+         Builder->SetInsertPoint(Then);
+         add_statement(node->if_t.statements);
+         if (!Then->getTerminator()) Builder->CreateBr(Merge);
+
+         Builder->SetInsertPoint(Merge);
+         add_statement(node->successor);
+
+         break;
+      }
       case ASTNode::LABEL:
          BasicBlockValues[node->string] = llvm::BasicBlock::Create(*TheContext, node->string, Builder->GetInsertBlock()->getParent());
          Builder->CreateBr(BasicBlockValues[node->string]);
@@ -326,17 +331,7 @@ static void add_global_variable(ASTNode* node) {
    printf("did not add global variable.\n");
 }
 
-static void analyze_ast() {
-   bool foundMainFunction = false;
-   for (int i = 0; i < ast_length; i++)
-      if ( generated_ast[i]->type == ASTNode::FUNCTION &&
-           strcmp(generated_ast[i]->function.title, "main") == 0 )
-         return;
-   fatal_error("no entry point");
-}
-
 extern "C" void generate_llvm_ir() {
-   analyze_ast();
    for (int i = 0; i < ast_length; i++) {
       switch (generated_ast[i]->type) {
          case ASTNode::FUNCTION:

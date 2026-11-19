@@ -1,0 +1,3 @@
+main() {
+    system("echo \"hello\"");
+}

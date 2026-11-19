@@ -35,33 +35,30 @@ static void malloc_err() { fatal_error("failed to allocate space for an AST node
 
 
 %union {
-   int      integer;
-   char*    str;
-   char     character;
-
+   int integer;
+   char* str;
+   char character;
    struct ASTNode* node;
 }
 
-
-%token <str> F_IDENTIFIER
+%token <str> F_IDENTIFIER F_STRING F_CHAR
 %token F_AUTO F_EXTRN
 %token <integer> F_NUMBER F_CHARACTER F_ARRAY
-%token <str> F_STRING
 %token F_PLUSEQ F_MINUSEQ F_TIMESEQ F_DIVEQ F_INC F_DEC
 %token F_EQ F_NEQ F_GTEQ F_LTEQ F_AND F_OR
 %token F_LSHIFT F_RSHIFT
 %token F_WHILE F_IF F_ELSE
-%token F_GOTO
-%token F_RETURN
-
+%token F_GOTO F_RETURN
 
 %type <node> function 
 %type <node> statement_list statement 
 %type <node> expression declaration parameters
-%type <node> array_reference else block;
+%type <node> array_decl else block;
 
 %left '+' '-'
 %left '*' '/'
+
+%nonassoc F_GTEQ F_LTEQ
 
 %%
 
@@ -181,7 +178,6 @@ statement:
       $$ = node;
    }
 
-
    |  F_IDENTIFIER F_INC ';' {
       ASTNode* node = malloc(sizeof(ASTNode));
       if (GCC_UNLIKELY(!node)) malloc_err();
@@ -204,6 +200,7 @@ statement:
       node->string = $1;
       $$ = node;
    }
+
    |  F_DEC F_IDENTIFIER ';' {
       ASTNode* node = malloc(sizeof(ASTNode));
       if (GCC_UNLIKELY(!node)) malloc_err();
@@ -384,8 +381,16 @@ expression:
       node->string = $2;
       $$ = node;
    }
+   
+   |  F_IDENTIFIER {
+      ASTNode* node = malloc(sizeof(ASTNode));
+      if (GCC_UNLIKELY(!node)) malloc_err();
+      node->type = VARIABLE;
+      node->string = $1;
+      $$ = node;
+   }
 
-   |  F_IDENTIFIER array_reference { 
+   |  F_IDENTIFIER array_decl { 
       ASTNode* node = malloc(sizeof(ASTNode));
       if (GCC_UNLIKELY(!node)) malloc_err();
       node->type = ARRAY_REF;
@@ -393,11 +398,10 @@ expression:
       node->list.next = $2;
       $$ = node;
    }
-   
-   |  F_IDENTIFIER {
+
+   | F_STRING {
       ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = VARIABLE;
+      node->type = STRING;
       node->string = $1;
       $$ = node;
    }
@@ -417,7 +421,6 @@ expression:
       node->integer = (int)$1;
       $$ = node;
    }
-
    ;
 
 declaration:
@@ -483,7 +486,7 @@ parameters:
    }
 
 
-array_reference:
+array_decl:
    /* empty */ {
       ASTNode* node = malloc(sizeof(ASTNode));
       if (GCC_UNLIKELY(!node)) malloc_err();
@@ -500,7 +503,7 @@ array_reference:
       node->list.next->type = STOP;
       $$ = node;
     }
-  | '[' expression ']' array_reference {
+  | '[' expression ']' array_decl {
       ASTNode* node = malloc(sizeof(ASTNode));
       if (GCC_UNLIKELY(!node)) malloc_err();
       node->type = ARRAY;
@@ -512,10 +515,4 @@ array_reference:
 
 %%
 
-void yyerror(const char *s) {
-   fprintf(stderr, "Error: %s\n", s);
-}
-
-
-// The reason an ASTNode* might be equal to 0x000000000000002 is because the union WAS
-// setting it to 2, but then this integer was read as an ASTNode*.
+void yyerror(const char *s) { fprintf(stderr, "Error: %s\n", s); }

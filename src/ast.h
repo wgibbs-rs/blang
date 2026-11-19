@@ -64,6 +64,7 @@ typedef struct ASTNode {
 
         NUMBER,
         VARIABLE,
+        STRING,
         ARRAY,
         ARRAY_REF,
 

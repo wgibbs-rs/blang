@@ -43,17 +43,18 @@ static inline void print_indent(int depth) {
 }
 
 static inline void print_node(ASTNode* node, int depth) {
-    if (!node) { print_indent(depth); printf("NODE IS NULL\n"); return; }
+    if (!node) { return; }
 
     if (node->type == STOP) return;
 
-    print_indent(depth);
     if (node->type >= 0 && 
-        node->type < sizeof(ASTNodeTypeNames)/sizeof(ASTNodeTypeNames[0]) )
+        node->type < sizeof(ASTNodeTypeNames)/sizeof(ASTNodeTypeNames[0]) ) {
+        print_indent(depth);
         printf("Type: %s\n", ASTNodeTypeNames[node->type]);
-    else
+    } else
         fatal_error("Type: UNKNOWN (%d)\n", node->type);
 
+    print_indent(depth);
     switch (node->type) {
         case GLOBAL_DECLARATION:
             print_indent(depth);
@@ -123,6 +124,7 @@ static inline void print_node(ASTNode* node, int depth) {
             print_indent(depth);
             printf("Value: %d\n", node->integer);
             break;
+        case STRING:
         case VARIABLE:
             print_indent(depth);
             printf("Title: %s\n", node->string);
