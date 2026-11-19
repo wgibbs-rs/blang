@@ -21,6 +21,7 @@
 
 %{
 #include <stdio.h>
+#include <stdlib.h>
 #include "ast.h"
 #include "error.h"
 #include "opt.h"
@@ -30,7 +31,15 @@ extern int yylex(void);
 extern int yyparse(void);
 extern int yy_scan_string(const char *str);
 
-static void malloc_err() { fatal_error("failed to allocate space for an AST node."); }
+// Create an allocation for a new node.
+static ASTNode* new_node(int type) {
+   ASTNode* output = malloc(sizeof(ASTNode));
+   if (GCC_UNLIKELY(!output)) 
+      fatal_error("failed to allocate space for an AST node.");
+   output->type = type;
+   return output;
+}
+
 %}
 
 
@@ -41,19 +50,19 @@ static void malloc_err() { fatal_error("failed to allocate space for an AST node
    struct ASTNode* node;
 }
 
-%token <str> F_IDENTIFIER F_STRING F_CHAR
+%token <str> F_IDENTIFIER F_STRING
 %token F_AUTO F_EXTRN
-%token <integer> F_NUMBER F_CHARACTER F_ARRAY
+%token <integer> F_NUMBER F_CHAR F_ARRAY
 %token F_PLUSEQ F_MINUSEQ F_TIMESEQ F_DIVEQ F_INC F_DEC
 %token F_EQ F_NEQ F_GTEQ F_LTEQ F_AND F_OR
 %token F_LSHIFT F_RSHIFT
-%token F_WHILE F_IF F_ELSE
+%token F_WHILE F_IF F_ELSE F_SWITCH F_CASE F_DEFAULT
 %token F_GOTO F_RETURN
 
 %type <node> function 
 %type <node> statement_list statement 
 %type <node> expression declaration parameters
-%type <node> array_decl else block;
+%type <node> array_decl else block switch_body;
 
 %left '+' '-'
 %left '*' '/'
@@ -65,9 +74,7 @@ static void malloc_err() { fatal_error("failed to allocate space for an AST node
 program:
    /* empty */ 
    |  program F_IDENTIFIER expression ';' {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = GLOBAL_DECLARATION;
+      ASTNode* node = new_node(GLOBAL_DECLARATION);
       node->list.title = $2;
       node->list.next = $3;
       append_statement(node);
@@ -77,9 +84,7 @@ program:
 
 function:
    F_IDENTIFIER '(' declaration ')' '{' statement_list '}' { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = FUNCTION;
+      ASTNode* node = new_node(FUNCTION);
       node->function.title = $1;
       node->function.args = $3;
       node->function.statements = $6;
@@ -90,9 +95,7 @@ function:
 
 statement_list:
    /* empty */ {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = STOP;
+      ASTNode* node = new_node(STOP);
       $$ = node;
    }
    |  statement statement_list {
@@ -104,13 +107,11 @@ statement_list:
 
 statement:
    F_AUTO declaration ';' { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = AUTO;
+      ASTNode* node = new_node(AUTO);
       node->list.next = $2;
 
       // Set all variables defined to be of type "AUTO"
-      ASTNode* current = node;
+      ASTNode* current = node; // TODO: This looks sketchy.
       while (current->type != STOP) {
          current->list.variableType = VAR_AUTO;
          current = current->list.next;
@@ -119,9 +120,7 @@ statement:
       $$ = node;
    }
    |  F_EXTRN declaration ';' { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = EXTRN;
+      ASTNode* node = new_node(EXTRN);
       node->list.next = $2;
 
       // Set all variables defined to be of type "EXTRN"
@@ -134,27 +133,28 @@ statement:
       $$ = node;
    }
    |  F_IDENTIFIER '=' expression ';' { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = ASSIGNMENT;
+      ASTNode* node = new_node(ASSIGNMENT);
       node->list.title = $1;
       node->list.next = $3;
       $$ = node;
    }
 
    |  F_WHILE '(' expression ')' block { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = WHILE_LOOP;
+      ASTNode* node = new_node(WHILE_LOOP);
+      node->list.inner = $3;
+      node->list.next = $5;
+      $$ = node;
+   }
+
+   |  F_SWITCH '(' expression ')' switch_body {
+      ASTNode* node = new_node(SWITCH_STMT);
       node->list.inner = $3;
       node->list.next = $5;
       $$ = node;
    }
    
    |  F_IF '(' expression ')' block else { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = IF;
+      ASTNode* node = new_node(IF);
       node->if_t.cond = $3;
       node->if_t.statements = $5;
       node->if_t.else_t = $6;
@@ -162,65 +162,49 @@ statement:
    }
 
    |  F_IDENTIFIER ':' { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = LABEL;
+     ASTNode* node = new_node(LABEL);
       node->string = $1;
       $$ = node;
    }
 
    |  F_IDENTIFIER '(' parameters ')' ';' { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = FUNCTION_CALL;
+      ASTNode* node = new_node(FUNCTION_CALL);
       node->list.title = $1;
       node->list.next = $3;
       $$ = node;
    }
 
    |  F_IDENTIFIER F_INC ';' {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = INC;
+      ASTNode* node = new_node(INC);
       node->string = $1;
       $$ = node;
    }
    |  F_INC F_IDENTIFIER ';' {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = INC;
+      ASTNode* node = new_node(INC);
       node->string = $2;
       $$ = node;
    }
       
    |  F_IDENTIFIER F_DEC ';' {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = DEC;
+      ASTNode* node = new_node(DEC);
       node->string = $1;
       $$ = node;
    }
 
    |  F_DEC F_IDENTIFIER ';' {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = DEC;
+      ASTNode* node = new_node(DEC);
       node->string = $2;
       $$ = node;
    }
 
    |  F_RETURN '(' expression ')' ';' { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = RETURN;
+      ASTNode* node = new_node(RETURN);
       node->list.next = $3;
       $$ = node;
    }
 
    |  F_GOTO F_IDENTIFIER ';' {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = GOTO;
+      ASTNode* node = new_node(GOTO);
       node->string = $2;
       $$ = node;
    }
@@ -231,193 +215,147 @@ expression:
    '(' expression ')' { $$ = $2; }
 
    | '!' expression {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = NOT;
+      ASTNode* node = new_node(NOT);
       node->inner = $2;
       $$ = node;
    }
 
    | '-' expression {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = MULTIPLY;
-      node->factors.left = $2;
-
-      ASTNode* negative = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!negative)) malloc_err();
-      negative->type = NUMBER;
+      ASTNode* negative = new_node(NUMBER);
       negative->integer = -1; // Multiply by -1.
 
+      ASTNode* node = new_node(MULTIPLY);
+      node->factors.left = $2;
       node->factors.right = negative;
       $$ = node;
    }
 
    |  expression '+' expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = ADD;
+      ASTNode* node = new_node(ADD);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression '-' expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = SUBTRACT;
+      ASTNode* node = new_node(SUBTRACT);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression '*' expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = MULTIPLY;
+      ASTNode* node = new_node(MULTIPLY);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression '/' expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = DIVIDE;
+      ASTNode* node = new_node(DIVIDE);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression F_GTEQ expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = GTEQ;
+      ASTNode* node = new_node(GE);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression F_LTEQ expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = LTEQ;
+      ASTNode* node = new_node(LE);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression '>' expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = GREATER;
+      ASTNode* node = new_node(GT);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression '<' expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = LESS;
+      ASTNode* node = new_node(LT);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression F_EQ expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = EQUALS;
+      ASTNode* node = new_node(EQ);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression F_NEQ expression {  
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = NEQUALS;
+      ASTNode* node = new_node(NE);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  F_IDENTIFIER '(' declaration ')' ';' {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = FUNCTION_CALL;
+      ASTNode* node = new_node(FUNCTION_CALL);
       node->list.title = $1;
       node->list.next = $3;
       $$ = node;    
    }
       
    |  F_IDENTIFIER F_INC {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = INC;
+      ASTNode* node = new_node(INC);
       node->string = $1;
       $$ = node;
    }
    |  F_INC F_IDENTIFIER {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = INC;
+      ASTNode* node = new_node(INC);
       node->string = $2;
       $$ = node;
    }
       
    |  F_IDENTIFIER F_DEC {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = DEC;
+      ASTNode* node = new_node(DEC);
       node->string = $1;
       $$ = node;
    }
    |  F_DEC F_IDENTIFIER {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = DEC;
+      ASTNode* node = new_node(DEC);
       node->string = $2;
       $$ = node;
    }
    
    |  F_IDENTIFIER {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = VARIABLE;
+      ASTNode* node = new_node(VARIABLE);
       node->string = $1;
       $$ = node;
    }
 
    |  F_IDENTIFIER array_decl { 
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = ARRAY_REF;
+      ASTNode* node = new_node(ARRAY_REF);
       node->list.title = $1;
       node->list.next = $2;
       $$ = node;
    }
 
    | F_STRING {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      node->type = STRING;
+      ASTNode* node = new_node(STRING);
       node->string = $1;
       $$ = node;
    }
 
    |  F_NUMBER {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = NUMBER;
+      ASTNode* node = new_node(NUMBER);
       node->integer = $1;
       $$ = node;
    }
 
-   |  F_CHARACTER {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = NUMBER;
+   |  F_CHAR {
+      ASTNode* node = new_node(NUMBER);
       node->integer = (int)$1;
       $$ = node;
    }
@@ -425,25 +363,17 @@ expression:
 
 declaration:
    /* empty */ {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = STOP;
+      ASTNode* node = new_node(STOP);
       $$ = node;
    }
    |  F_IDENTIFIER {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = VARIABLE;
+      ASTNode* node = new_node(VARIABLE);
       node->list.title = $1;
-      node->list.next = malloc(sizeof(ASTNode));
-      if (!node->list.next) malloc_err();
-      node->list.next->type = STOP;
+      node->list.next = new_node(STOP);
       $$ = node;
    }
    |  F_IDENTIFIER ',' declaration {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = VARIABLE;
+      ASTNode* node = new_node(VARIABLE);
       node->list.title = $1;
       node->list.next = $3;
       $$ = node;
@@ -453,9 +383,7 @@ declaration:
 
 else:
    /* empty */ {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = STOP;
+      ASTNode* node = new_node(STOP);
       $$ = node;
    }
    | F_ELSE block { $$ = $2; }
@@ -466,17 +394,24 @@ block:
    | statement { $$ = $1; }
    ;
 
+switch_body:
+   '{' switch_body '}' { $$ = $2; }
+   | F_CASE expression ':' block switch_body {
+      ASTNode* node = new_node(SWITCH_CASE);
+   }
+   | F_DEFAULT expression ':' block {
+      ASTNode* end = new_node(STOP);
+      ASTNode* node = new_node(SWITCH_CASE);
+   }
+   ;
+
 parameters:
    /* empty */ {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = STOP;
+      ASTNode* node = new_node(STOP);
       $$ = node;
    }
    | expression {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = STOP;
+      ASTNode* node = new_node(STOP);
       $1->successor = node;
       $$ = $1;
    }
@@ -488,25 +423,17 @@ parameters:
 
 array_decl:
    /* empty */ {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = STOP;
+      ASTNode* node = new_node(STOP);
       $$ = node;
    }
   | '[' expression ']' {
-        ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = ARRAY;
+      ASTNode* node = new_node(ARRAY);
       node->list.inner = $2;
-      node->list.next = malloc(sizeof(ASTNode));
-      if (!node->list.next) malloc_err();
-      node->list.next->type = STOP;
+      node->list.next = new_node(STOP);
       $$ = node;
     }
   | '[' expression ']' array_decl {
-      ASTNode* node = malloc(sizeof(ASTNode));
-      if (GCC_UNLIKELY(!node)) malloc_err();
-      node->type = ARRAY;
+      ASTNode* node = new_node(ARRAY);
       node->list.inner = $2;
       node->list.next = $4;
       $$ = node;

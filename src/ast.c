@@ -95,12 +95,12 @@ static inline void print_node(ASTNode* node, int depth) {
         case SUBTRACT:
         case MULTIPLY:
         case DIVIDE:
-        case GTEQ:
-        case LTEQ:
-        case GREATER:
-        case LESS:
-        case EQUALS:
-        case NEQUALS:
+        case GE:
+        case LE:
+        case GT:
+        case LT:
+        case EQ:
+        case NE:
             print_node(node->factors.left, depth + 1);
             print_node(node->factors.right, depth + 1);
             break;

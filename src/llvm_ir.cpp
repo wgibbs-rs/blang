@@ -70,37 +70,37 @@ GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
       case ASTNode::DIVIDE:
          return Builder->CreateSDiv(add_expression(node->factors.left), add_expression(node->factors.right), "sdivtmp");
          break;
-      case ASTNode::GTEQ:
+      case ASTNode::GE:
          {
             llvm::Value* cmp = Builder->CreateICmpSGE(add_expression(node->factors.left), add_expression(node->factors.right), "sgetmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::LTEQ:
+      case ASTNode::LE:
          {
             llvm::Value* cmp = Builder->CreateICmpSLE(add_expression(node->factors.left), add_expression(node->factors.right), "sletmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::GREATER:
+      case ASTNode::GT:
          {
             llvm::Value* cmp = Builder->CreateICmpSGT(add_expression(node->factors.left), add_expression(node->factors.right), "sgttmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::LESS:
+      case ASTNode::LT:
          {
             llvm::Value* cmp = Builder->CreateICmpSLT(add_expression(node->factors.left), add_expression(node->factors.right), "slttmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::EQUALS:
+      case ASTNode::EQ:
          {
             llvm::Value* cmp = Builder->CreateICmpEQ(add_expression(node->factors.left), add_expression(node->factors.right), "eqtmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");
             break;
          }
-      case ASTNode::NEQUALS:
+      case ASTNode::NE:
          {
             llvm::Value* cmp = Builder->CreateICmpNE(add_expression(node->factors.left), add_expression(node->factors.right), "netmp");
             return Builder->CreateZExt(cmp, llvm::Type::getInt64Ty(*TheContext), "i64_bool");

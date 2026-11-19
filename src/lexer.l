@@ -31,7 +31,7 @@
 
 \'[^\']\' { 
    yylval.integer = (int)yytext[1];
-   return F_CHARACTER;
+   return F_CHAR;
 }
 
 "["         {  return '[';          }
@@ -84,6 +84,7 @@
 
 "switch"    {  return F_SWITCH;     }
 "case"      {  return F_CASE;       }
+"default"   {  return F_DEFAULT;    }
 
 "goto"      {  return F_GOTO;       }
 
