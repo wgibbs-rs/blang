@@ -34,8 +34,7 @@ extern int yy_scan_string(const char *str);
 // Create an allocation for a new node.
 static ASTNode* new_node(int type) {
    ASTNode* output = malloc(sizeof(ASTNode));
-   if (GCC_UNLIKELY(!output)) 
-      fatal_error("failed to allocate space for an AST node.");
+   if (!output) fatal_error("failed to allocate space for an AST node.");
    output->type = type;
    return output;
 }
@@ -44,17 +43,16 @@ static ASTNode* new_node(int type) {
 
 
 %union {
-   int integer;
+   int val;
    char* str;
-   char character;
    struct ASTNode* node;
 }
 
 %token <str> F_IDENTIFIER F_STRING
 %token F_AUTO F_EXTRN
-%token <integer> F_NUMBER F_CHAR F_ARRAY
+%token <val> F_NUMBER F_CHAR F_ARRAY
 %token F_PLUSEQ F_MINUSEQ F_TIMESEQ F_DIVEQ F_INC F_DEC
-%token F_EQ F_NEQ F_GTEQ F_LTEQ F_AND F_OR
+%token F_EQ F_NE F_GE F_LE F_AND F_OR
 %token F_LSHIFT F_RSHIFT
 %token F_WHILE F_IF F_ELSE F_SWITCH F_CASE F_DEFAULT
 %token F_GOTO F_RETURN
@@ -67,7 +65,7 @@ static ASTNode* new_node(int type) {
 %left '+' '-'
 %left '*' '/'
 
-%nonassoc F_GTEQ F_LTEQ
+%nonassoc F_GE F_LE
 
 %%
 
@@ -163,7 +161,7 @@ statement:
 
    |  F_IDENTIFIER ':' { 
      ASTNode* node = new_node(LABEL);
-      node->string = $1;
+      node->str = $1;
       $$ = node;
    }
 
@@ -176,24 +174,24 @@ statement:
 
    |  F_IDENTIFIER F_INC ';' {
       ASTNode* node = new_node(INC);
-      node->string = $1;
+      node->str = $1;
       $$ = node;
    }
    |  F_INC F_IDENTIFIER ';' {
       ASTNode* node = new_node(INC);
-      node->string = $2;
+      node->str = $2;
       $$ = node;
    }
       
    |  F_IDENTIFIER F_DEC ';' {
       ASTNode* node = new_node(DEC);
-      node->string = $1;
+      node->str = $1;
       $$ = node;
    }
 
    |  F_DEC F_IDENTIFIER ';' {
       ASTNode* node = new_node(DEC);
-      node->string = $2;
+      node->str = $2;
       $$ = node;
    }
 
@@ -205,7 +203,7 @@ statement:
 
    |  F_GOTO F_IDENTIFIER ';' {
       ASTNode* node = new_node(GOTO);
-      node->string = $2;
+      node->str = $2;
       $$ = node;
    }
    ;
@@ -222,9 +220,9 @@ expression:
 
    | '-' expression {
       ASTNode* negative = new_node(NUMBER);
-      negative->integer = -1; // Multiply by -1.
+      negative->val = -1; // Multiply by -1.
 
-      ASTNode* node = new_node(MULTIPLY);
+      ASTNode* node = new_node(MUL);
       node->factors.left = $2;
       node->factors.right = negative;
       $$ = node;
@@ -238,34 +236,34 @@ expression:
    }
 
    |  expression '-' expression {  
-      ASTNode* node = new_node(SUBTRACT);
+      ASTNode* node = new_node(SUB);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression '*' expression {  
-      ASTNode* node = new_node(MULTIPLY);
+      ASTNode* node = new_node(MUL);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
    |  expression '/' expression {  
-      ASTNode* node = new_node(DIVIDE);
+      ASTNode* node = new_node(DIV);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
-   |  expression F_GTEQ expression {  
+   |  expression F_GE expression {  
       ASTNode* node = new_node(GE);
       node->factors.left = $1;
       node->factors.right = $3;
       $$ = node;
    }
 
-   |  expression F_LTEQ expression {  
+   |  expression F_LE expression {  
       ASTNode* node = new_node(LE);
       node->factors.left = $1;
       node->factors.right = $3;
@@ -293,7 +291,7 @@ expression:
       $$ = node;
    }
 
-   |  expression F_NEQ expression {  
+   |  expression F_NE expression {  
       ASTNode* node = new_node(NE);
       node->factors.left = $1;
       node->factors.right = $3;
@@ -309,29 +307,29 @@ expression:
       
    |  F_IDENTIFIER F_INC {
       ASTNode* node = new_node(INC);
-      node->string = $1;
+      node->str = $1;
       $$ = node;
    }
    |  F_INC F_IDENTIFIER {
       ASTNode* node = new_node(INC);
-      node->string = $2;
+      node->str = $2;
       $$ = node;
    }
       
    |  F_IDENTIFIER F_DEC {
       ASTNode* node = new_node(DEC);
-      node->string = $1;
+      node->str = $1;
       $$ = node;
    }
    |  F_DEC F_IDENTIFIER {
       ASTNode* node = new_node(DEC);
-      node->string = $2;
+      node->str = $2;
       $$ = node;
    }
    
    |  F_IDENTIFIER {
       ASTNode* node = new_node(VARIABLE);
-      node->string = $1;
+      node->str = $1;
       $$ = node;
    }
 
@@ -344,19 +342,19 @@ expression:
 
    | F_STRING {
       ASTNode* node = new_node(STRING);
-      node->string = $1;
+      node->str = $1;
       $$ = node;
    }
 
    |  F_NUMBER {
       ASTNode* node = new_node(NUMBER);
-      node->integer = $1;
+      node->val = $1;
       $$ = node;
    }
 
    |  F_CHAR {
       ASTNode* node = new_node(NUMBER);
-      node->integer = (int)$1;
+      node->val = (int)$1;
       $$ = node;
    }
    ;

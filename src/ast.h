@@ -32,51 +32,23 @@ typedef enum VariableType {
 
 typedef struct ASTNode {
     enum { 
-        GLOBAL_DECLARATION,
-        AUTO,
-        EXTRN,
+        GLOBAL_DECLARATION, AUTO, EXTRN,
         ASSIGNMENT,
         WHILE_LOOP,
-        SWITCH_STMT,
-        SWITCH_CASE,
+        SWITCH_STMT, SWITCH_CASE,
         IF,
-        LABEL,
-        RETURN,
-        GOTO,
-        FUNCTION,
-
-        
-        ADD,
-        SUBTRACT,
-        MULTIPLY,
-        DIVIDE,
-        GE,
-        LE,
-        GT,
-        LT,
-        EQ,
-        NE,
-        FUNCTION_CALL,
-
-        NOT,
+        LABEL, GOTO,
+        FUNCTION, FUNCTION_CALL, RETURN, 
+        ADD, SUB, MUL, DIV,
+        GE, LE, GT, LT, EQ, NE, NOT,
         NEGATIVE,
-
-        INC,
-        DEC,
-
-        NUMBER,
-        VARIABLE,
-        STRING,
-        ARRAY,
-        ARRAY_REF,
-
+        INC, DEC,
+        NUMBER, VARIABLE, STRING, ARRAY, ARRAY_REF,
         STOP
     } type;
+    int val;
+    char* str;
     union {
-        int integer;
-
-        char* string;
-
         struct ASTNode* inner;
 
         struct {

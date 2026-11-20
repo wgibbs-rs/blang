@@ -61,13 +61,13 @@ GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
       case ASTNode::ADD:
          return Builder->CreateAdd(add_expression(node->factors.left), add_expression(node->factors.right), "addtmp");
          break;
-      case ASTNode::SUBTRACT:
+      case ASTNode::SUB:
          return Builder->CreateSub(add_expression(node->factors.left), add_expression(node->factors.right), "subtmp");
          break;
-      case ASTNode::MULTIPLY:
+      case ASTNode::MUL:
          return Builder->CreateMul(add_expression(node->factors.left), add_expression(node->factors.right), "multmp");
          break;
-      case ASTNode::DIVIDE:
+      case ASTNode::DIV:
          return Builder->CreateSDiv(add_expression(node->factors.left), add_expression(node->factors.right), "sdivtmp");
          break;
       case ASTNode::GE:
@@ -125,27 +125,27 @@ GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
       case ASTNode::INC:
          {
             llvm::Value* inc = Builder->CreateAdd(
-               value_of(NamedValues[node->string]), 
+               value_of(NamedValues[node->str]), 
                llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), 
                "inctmp");
-            Builder->CreateStore(inc, NamedValues[node->string]);
+            Builder->CreateStore(inc, NamedValues[node->str]);
             return Builder->CreateSub(inc, llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "lesser_inc");
          }
       case ASTNode::DEC:
          {
             llvm::Value* dec = Builder->CreateSub(
-               value_of(NamedValues[node->string]), 
+               value_of(NamedValues[node->str]), 
                llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), 
                "dectmp");
-            Builder->CreateStore(dec, NamedValues[node->string]);
+            Builder->CreateStore(dec, NamedValues[node->str]);
             return Builder->CreateAdd(dec, llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), "greater_dec");
          }
          break;
       case ASTNode::NUMBER:
-         return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*TheContext), node->integer);
+         return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*TheContext), node->val);
          break;
       case ASTNode::VARIABLE:
-         return value_of(NamedValues[node->string]);
+         return value_of(NamedValues[node->str]);
          break;
       default: break;
    }
@@ -259,13 +259,13 @@ GCC_HOT static void add_statement(ASTNode* node) {
          break;
       }
       case ASTNode::LABEL:
-         BasicBlockValues[node->string] = llvm::BasicBlock::Create(*TheContext, node->string, Builder->GetInsertBlock()->getParent());
-         Builder->CreateBr(BasicBlockValues[node->string]);
-         Builder->SetInsertPoint(BasicBlockValues[node->string]);
+         BasicBlockValues[node->str] = llvm::BasicBlock::Create(*TheContext, node->str, Builder->GetInsertBlock()->getParent());
+         Builder->CreateBr(BasicBlockValues[node->str]);
+         Builder->SetInsertPoint(BasicBlockValues[node->str]);
          add_statement(node->successor);
          break;
       case ASTNode::GOTO:
-         Builder->CreateBr(BasicBlockValues[node->string]);
+         Builder->CreateBr(BasicBlockValues[node->str]);
          add_statement(node->successor);
          break;
       case ASTNode::RETURN:
@@ -275,20 +275,20 @@ GCC_HOT static void add_statement(ASTNode* node) {
       case ASTNode::INC:
          {
             llvm::Value* inc = Builder->CreateAdd(
-               value_of(NamedValues[node->string]), 
+               value_of(NamedValues[node->str]), 
                llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), 
                "inctmp");
-            Builder->CreateStore(inc, NamedValues[node->string]);
+            Builder->CreateStore(inc, NamedValues[node->str]);
             add_statement(node->successor);
             break;
          }
       case ASTNode::DEC:
          {
             llvm::Value* dec = Builder->CreateSub(
-               value_of(NamedValues[node->string]), 
+               value_of(NamedValues[node->str]), 
                llvm::ConstantInt::get(*TheContext, llvm::APInt(64, 1)), 
                "dectmp");
-            Builder->CreateStore(dec, NamedValues[node->string]);
+            Builder->CreateStore(dec, NamedValues[node->str]);
             add_statement(node->successor);
             break;
          }

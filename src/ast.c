@@ -79,7 +79,7 @@ static inline void print_node(ASTNode* node, int depth) {
             break;
         case LABEL:
             print_indent(depth);
-            printf("Title: %s\n", node->string);
+            printf("Title: %s\n", node->str);
             break;
         case RETURN:
             print_node(node->list.next, depth + 1);
@@ -92,9 +92,9 @@ static inline void print_node(ASTNode* node, int depth) {
             break;
 
         case ADD:
-        case SUBTRACT:
-        case MULTIPLY:
-        case DIVIDE:
+        case SUB:
+        case MUL:
+        case DIV:
         case GE:
         case LE:
         case GT:
@@ -117,17 +117,17 @@ static inline void print_node(ASTNode* node, int depth) {
         case INC:
         case DEC:
             print_indent(depth);
-            printf("Title: %s\n", node->string);
+            printf("Title: %s\n", node->str);
             break;
 
         case NUMBER:
             print_indent(depth);
-            printf("Value: %d\n", node->integer);
+            printf("Value: %d\n", node->val);
             break;
         case STRING:
         case VARIABLE:
             print_indent(depth);
-            printf("Title: %s\n", node->string);
+            printf("Title: %s\n", node->str);
             print_node(node->list.next, depth);
             break;
         case ARRAY:
