@@ -40,7 +40,6 @@ void append_statement(ASTNode* node) {
 }
 
 static inline void print_indent(int depth) {
-    if (depth == 0) return;
     for (int i = 0; i < depth; i++) printf("  ");
 }
 
@@ -51,8 +50,7 @@ static inline void print_node(ASTNode* node, int depth) {
         node->type < sizeof(ASTNodeTypeNames)/sizeof(ASTNodeTypeNames[0]) ) {
         print_indent(depth);
         printf("%s\n", ASTNodeTypeNames[node->type]);
-    } else
-        fatal_error("invalid type id: %d\n", node->type);
+    } else fatal_error("invalid type id: %d\n", node->type);
 
     // int val;
     print_indent(depth + 1);

@@ -23,12 +23,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "error.h"
-#include "opt.h"
 
 #define RED "\033[1;31m"
 #define RESET "\033[0m"
 
-GCC_COLD void error(const char *text, ...) {
+void error(const char *text, ...) {
    va_list args;
    va_start(args, text);
    printf("blang: " RED "error: " RESET);
@@ -37,7 +36,7 @@ GCC_COLD void error(const char *text, ...) {
    va_end(args);
 }
 
-GCC_NORETURN GCC_COLD void fatal_error(const char *text, ...) {
+void fatal_error(const char *text, ...) {
    va_list args;
    va_start(args, text);
    printf("blang: " RED "error: " RESET);

@@ -23,7 +23,6 @@
 
 #include "llvm.h"
 #include "error.h"
-#include "opt.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>

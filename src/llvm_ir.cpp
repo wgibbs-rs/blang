@@ -33,7 +33,6 @@
 #include "llvm.h"
 #include "ast.h"
 #include "error.h"
-#include "opt.h"
 
 #define INT32_TYPE llvm::Type::getInt32Ty(*TheContext)
 
@@ -47,7 +46,7 @@ std::map<std::string, llvm::Value *> ExtrnValues;
 std::map<std::string, llvm::Function *> FunctionValues;
 std::map<std::string, llvm::BasicBlock *> BasicBlockValues;
 
-GCC_HOT static inline llvm::Value* value_of(llvm::Value* alloca) {
+static inline llvm::Value* value_of(llvm::Value* alloca) {
    return Builder->CreateLoad(INT32_TYPE, alloca, "load");
 }
 
@@ -57,7 +56,7 @@ GCC_HOT static inline llvm::Value* value_of(llvm::Value* alloca) {
  */
 static bool functionDoesReturn = false;
 
-GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
+static llvm::Value* add_expression(ASTNode* node) {
 
    switch (node->type) {
       case ASTNode::ADD:
@@ -135,7 +134,7 @@ GCC_HOT static llvm::Value* add_expression(ASTNode* node) {
    }
 }
 
-GCC_HOT static void add_statement(ASTNode* node) {
+static void add_statement(ASTNode* node) {
 
    switch (node->type) {
       case ASTNode::STOP: return;
@@ -291,11 +290,8 @@ static void add_function(ASTNode* node) {
             : nullptr
    ) list.push_back(INT32_TYPE);
 
-   // Create the function type, including arguments if any.
-   llvm::FunctionType *funcType = llvm::FunctionType::get(INT32_TYPE, list, false);
-
    llvm::Function *function = llvm::Function::Create(
-      funcType,
+      llvm::FunctionType::get(INT32_TYPE, list, false),
       llvm::Function::ExternalLinkage,
       llvm::Twine(node->str),
       *TheModule

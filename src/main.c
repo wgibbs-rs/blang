@@ -28,7 +28,6 @@
 #include "llvm.h"
 #include "error.h"
 #include "ast.h"
-#include "opt.h"
 
 extern int yyparse(void);                       // declare Bison parser function
 extern int yy_scan_string(const char *str);     // lex the file for keywords

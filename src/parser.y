@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include "ast.h"
 #include "error.h"
-#include "opt.h"
 
 extern void yyerror(const char *s);
 extern int yylex(void);
