@@ -28,123 +28,48 @@ ASTNode** generated_ast = NULL;
 int ast_length = 0;
 
 void append_statement(ASTNode* node) {
-    generated_ast = realloc(generated_ast, sizeof(ASTNode*) * (ast_length + 1));
-    if (!generated_ast) {
-        perror("realloc failed");
-        exit(EXIT_FAILURE);
-    }
-    generated_ast[ast_length] = node;
-    ast_length++;
+    ASTNode** tmp = realloc(
+        generated_ast,
+        sizeof(*generated_ast) * (ast_length + 1)
+    );
+
+    if (!tmp) fatal_error("failed to allocate generated AST");
+
+    generated_ast = tmp;
+    generated_ast[ast_length++] = node;
 }
 
 static inline void print_indent(int depth) {
     if (depth == 0) return;
-    for (int i = 0; i < depth; i++) printf("\t");
+    for (int i = 0; i < depth; i++) printf("  ");
 }
 
 static inline void print_node(ASTNode* node, int depth) {
-    if (!node) { return; }
-
-    if (node->type == STOP) return;
+    if (!node || node->type == STOP) { return; }
 
     if (node->type >= 0 && 
         node->type < sizeof(ASTNodeTypeNames)/sizeof(ASTNodeTypeNames[0]) ) {
         print_indent(depth);
-        printf("Type: %s\n", ASTNodeTypeNames[node->type]);
+        printf("%s\n", ASTNodeTypeNames[node->type]);
     } else
-        fatal_error("Type: UNKNOWN (%d)\n", node->type);
+        fatal_error("invalid type id: %d\n", node->type);
 
-    print_indent(depth);
-    switch (node->type) {
-        case GLOBAL_DECLARATION:
-            print_indent(depth);
-            printf("Title: %s\n", node->list.title);
-            print_node(node->list.next, depth + 1);
-            break;
-        case AUTO:
-        case EXTRN: print_node(node->list.next, depth + 1); break;
-        case ASSIGNMENT:
-            print_indent(depth);
-            printf("Title: %s\n", node->list.title);
-            print_node(node->list.next, depth + 1);
-            break;
-        case WHILE_LOOP:
-            print_node(node->list.inner, depth + 1);
-            print_node(node->list.next, depth + 1);
-            break;
-        case IF:
-            print_node(node->if_t.cond, depth + 1);
-            print_node(node->if_t.statements, depth + 1);
-            print_node(node->if_t.else_t, depth + 1);
-            break;
-        case LABEL:
-            print_indent(depth);
-            printf("Title: %s\n", node->str);
-            break;
-        case RETURN:
-            print_node(node->list.next, depth + 1);
-            break;
-        case FUNCTION:
-            print_indent(depth);
-            printf("Title: %s\n", node->function.title);
-            print_node(node->function.args, depth + 1);
-            print_node(node->function.statements, depth + 1);
-            break;
-
-        case ADD:
-        case SUB:
-        case MUL:
-        case DIV:
-        case GE:
-        case LE:
-        case GT:
-        case LT:
-        case EQ:
-        case NE:
-            print_node(node->factors.left, depth + 1);
-            print_node(node->factors.right, depth + 1);
-            break;
-        case FUNCTION_CALL:
-            print_indent(depth);
-            printf("Title: %s\n", node->list.title);
-            print_node(node->list.next, depth + 1);
-            break;
-        
-        case NOT:
-            print_node(node->inner, depth + 1);
-            break;
-
-        case INC:
-        case DEC:
-            print_indent(depth);
-            printf("Title: %s\n", node->str);
-            break;
-
-        case NUMBER:
-            print_indent(depth);
-            printf("Value: %d\n", node->val);
-            break;
-        case STRING:
-        case VARIABLE:
-            print_indent(depth);
-            printf("Title: %s\n", node->str);
-            print_node(node->list.next, depth);
-            break;
-        case ARRAY:
-            print_node(node->list.inner, depth + 1);
-            print_node(node->list.next, depth);
-            break;
-        case ARRAY_REF:
-            print_indent(depth);
-            printf("Title: %s\n", node->list.title);
-            print_node(node->list.next, depth + 1);
-            break;
-        default:
-            print_indent(depth);
-            printf("Unreachable code.\n");
-            break;
-    }
-
+    // int val;
+    print_indent(depth + 1);
+    printf("Short Value: %d\n", node->val);
+    // char* str;
+    print_indent(depth + 1);
+    printf("String Value: \"%s\"\n", node->str);
+    // VariableType variableType;
+    print_indent(depth + 1);
+    printf("VariableType: %d\n", node->variableType);
+    // int childC;
+    // struct ASTNode** childV;
+    print_indent(depth + 1);
+    printf("Children: %d\n", node->childC);
+    for (int i = 0; i < node->childC; i++)
+        print_node(node->childV[i], depth + 2);
+    
     if (node->successor) print_node(node->successor, depth);
 }
 

@@ -30,7 +30,7 @@
 "//".*                              { /* Single-line comment */ }
 
 \'[^\']\' { 
-   yylval.integer = (int)yytext[1];
+   yylval.val = (int)yytext[1];
    return F_CHAR;
 }
 
@@ -61,9 +61,9 @@
 "/="        {  return F_DIVEQ;      }
 
 "=="        {  return F_EQ;         }
-"!="        {  return F_NEQ;        }
-">="        {  return F_GTEQ;       }
-"<="        {  return F_LTEQ;       }
+"!="        {  return F_NE;        }
+">="        {  return F_GE;       }
+"<="        {  return F_LE;       }
 ">"         {  return '>';          }
 "<"         {  return '<';          }
 
@@ -99,7 +99,7 @@
 \"([^\\\"\n]|\\.)*\"    { yylval.str = strdup(yytext); return F_STRING; }
 \'([^\\\"\n]|\\.)*\'    { yylval.str = strdup(yytext); return F_CHAR; }
 
-[0-9]+      {  yylval.integer = atoi(yytext); return F_NUMBER; }
+[0-9]+      {  yylval.val = atoi(yytext); return F_NUMBER; }
 
 [a-zA-Z_][a-zA-Z0-9_]*    { yylval.str = strdup(yytext); return F_IDENTIFIER; }
 

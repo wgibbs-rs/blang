@@ -19,6 +19,9 @@
    3. This notice may not be removed or altered from any source distribution.
 */
 
+%define parse.error verbose
+%define parse.lac full
+
 %{
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,11 +39,25 @@ static ASTNode* new_node(int type) {
    ASTNode* output = malloc(sizeof(ASTNode));
    if (!output) fatal_error("failed to allocate space for an AST node.");
    output->type = type;
+   output->childC = 0;
+   output->childV = NULL;
    return output;
 }
 
-%}
+static void add_child(ASTNode* parent, ASTNode* child) {
+   ASTNode** tmp = realloc(
+      parent->childV,
+      (parent->childC + 1) * sizeof(*parent->childV)
+   );
 
+   if (tmp == NULL) return;
+
+   parent->childV = tmp;
+   parent->childV[parent->childC] = child;
+   parent->childC++;
+}
+
+%}
 
 %union {
    int val;
@@ -59,13 +76,13 @@ static ASTNode* new_node(int type) {
 
 %type <node> function 
 %type <node> statement_list statement 
-%type <node> expression declaration parameters
-%type <node> array_decl else block switch_body;
+%type <node> expression parameters
+%type <node> block switch_body;
 
 %left '+' '-'
 %left '*' '/'
 
-%nonassoc F_GE F_LE
+%nonassoc F_GE F_LE '>' '<' F_EQ F_NE
 
 %%
 
@@ -73,23 +90,22 @@ program:
    /* empty */ 
    |  program F_IDENTIFIER expression ';' {
       ASTNode* node = new_node(GLOBAL_DECLARATION);
-      node->list.title = $2;
-      node->list.next = $3;
+      node->str = $2;
+      add_child(node, $3);
       append_statement(node);
    }
    |  program function { append_statement($2); }
    ;
 
 function:
-   F_IDENTIFIER '(' declaration ')' '{' statement_list '}' { 
+   F_IDENTIFIER '(' parameters ')' '{' statement_list '}' { 
       ASTNode* node = new_node(FUNCTION);
-      node->function.title = $1;
-      node->function.args = $3;
-      node->function.statements = $6;
+      node->str = $1;
+      add_child(node, $3);
+      add_child(node, $6);
       $$ = node;
    }
    ;
-
 
 statement_list:
    /* empty */ {
@@ -104,104 +120,116 @@ statement_list:
    ;
 
 statement:
-   F_AUTO declaration ';' { 
+
+   F_AUTO parameters ';' { 
       ASTNode* node = new_node(AUTO);
-      node->list.next = $2;
+      add_child(node, $2);
 
       // Set all variables defined to be of type "AUTO"
       ASTNode* current = node; // TODO: This looks sketchy.
       while (current->type != STOP) {
-         current->list.variableType = VAR_AUTO;
-         current = current->list.next;
+         current->variableType = VAR_AUTO;
+         current = current->childV[0];
       }
 
       $$ = node;
    }
-   |  F_EXTRN declaration ';' { 
+
+   |  F_EXTRN parameters ';' { 
       ASTNode* node = new_node(EXTRN);
-      node->list.next = $2;
+      add_child(node, $2);
 
       // Set all variables defined to be of type "EXTRN"
       ASTNode* current = node;
       while (current->type != STOP) {
-         current->list.variableType = VAR_EXTRN;
-         current = current->list.next;
+         current->variableType = VAR_EXTRN;
+         current = current->childV[0];
       }
 
       $$ = node;
    }
+
    |  F_IDENTIFIER '=' expression ';' { 
       ASTNode* node = new_node(ASSIGNMENT);
-      node->list.title = $1;
-      node->list.next = $3;
+      node->str = $1;
+      add_child(node, $3);
       $$ = node;
    }
 
    |  F_WHILE '(' expression ')' block { 
       ASTNode* node = new_node(WHILE_LOOP);
-      node->list.inner = $3;
-      node->list.next = $5;
+      add_child(node, $3);
+      add_child(node, $5);
       $$ = node;
    }
 
    |  F_SWITCH '(' expression ')' switch_body {
       ASTNode* node = new_node(SWITCH_STMT);
-      node->list.inner = $3;
-      node->list.next = $5;
+      node->childC++;
+      add_child(node, $3);
+      add_child(node, $5);
       $$ = node;
    }
    
-   |  F_IF '(' expression ')' block else { 
+   |  F_IF '(' expression ')' block { 
       ASTNode* node = new_node(IF);
-      node->if_t.cond = $3;
-      node->if_t.statements = $5;
-      node->if_t.else_t = $6;
+      node->childV[0] = $3;
+      node->childV[1] = $5;
+      node->childV[2] = new_node(STOP);
       $$ = node;
    }
 
-   |  F_IDENTIFIER ':' { 
+   |  F_IF '(' expression ')' block F_ELSE block { 
+      ASTNode* node = new_node(IF);
+      node->childV[0] = $3;
+      node->childV[1] = $5;
+      node->childV[2] = $7;
+      $$ = node;
+   }
+
+   | F_IDENTIFIER ':' { 
      ASTNode* node = new_node(LABEL);
       node->str = $1;
       $$ = node;
    }
 
-   |  F_IDENTIFIER '(' parameters ')' ';' { 
+   | F_IDENTIFIER '(' parameters ')' ';' { 
       ASTNode* node = new_node(FUNCTION_CALL);
-      node->list.title = $1;
-      node->list.next = $3;
+      node->str = $1;
+      add_child(node, $3);
       $$ = node;
    }
 
-   |  F_IDENTIFIER F_INC ';' {
+   | F_IDENTIFIER F_INC ';' {
       ASTNode* node = new_node(INC);
       node->str = $1;
       $$ = node;
    }
-   |  F_INC F_IDENTIFIER ';' {
+   | F_INC F_IDENTIFIER ';' {
       ASTNode* node = new_node(INC);
       node->str = $2;
       $$ = node;
    }
       
-   |  F_IDENTIFIER F_DEC ';' {
+   | F_IDENTIFIER F_DEC ';' {
       ASTNode* node = new_node(DEC);
       node->str = $1;
       $$ = node;
    }
 
-   |  F_DEC F_IDENTIFIER ';' {
+   | F_DEC F_IDENTIFIER ';' {
       ASTNode* node = new_node(DEC);
       node->str = $2;
       $$ = node;
    }
 
-   |  F_RETURN '(' expression ')' ';' { 
+   | F_RETURN '(' expression ')' ';' { 
       ASTNode* node = new_node(RETURN);
-      node->list.next = $3;
+      add_child(node, $3);
       $$ = node;
    }
 
-   |  F_GOTO F_IDENTIFIER ';' {
+   | F_GOTO F_IDENTIFIER ';' {
       ASTNode* node = new_node(GOTO);
       node->str = $2;
       $$ = node;
@@ -214,7 +242,7 @@ expression:
 
    | '!' expression {
       ASTNode* node = new_node(NOT);
-      node->inner = $2;
+      node->childV[0] = $2;
       $$ = node;
    }
 
@@ -223,85 +251,86 @@ expression:
       negative->val = -1; // Multiply by -1.
 
       ASTNode* node = new_node(MUL);
-      node->factors.left = $2;
-      node->factors.right = negative;
+      node->childV[0] = $2;
+      node->childV[1] = negative;
       $$ = node;
    }
 
    |  expression '+' expression {  
       ASTNode* node = new_node(ADD);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
    |  expression '-' expression {  
       ASTNode* node = new_node(SUB);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
    |  expression '*' expression {  
       ASTNode* node = new_node(MUL);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
    |  expression '/' expression {  
       ASTNode* node = new_node(DIV);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
    |  expression F_GE expression {  
       ASTNode* node = new_node(GE);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
    |  expression F_LE expression {  
       ASTNode* node = new_node(LE);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
    |  expression '>' expression {  
       ASTNode* node = new_node(GT);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
    |  expression '<' expression {  
       ASTNode* node = new_node(LT);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
    |  expression F_EQ expression {  
       ASTNode* node = new_node(EQ);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
    |  expression F_NE expression {  
       ASTNode* node = new_node(NE);
-      node->factors.left = $1;
-      node->factors.right = $3;
+      add_child(node, $1);
+      add_child(node, $3);
       $$ = node;
    }
 
-   |  F_IDENTIFIER '(' declaration ')' ';' {
+   |  F_IDENTIFIER '(' parameters ')' {
       ASTNode* node = new_node(FUNCTION_CALL);
-      node->list.title = $1;
-      node->list.next = $3;
+      node->str = $1;
+      add_child(node, new_node(STOP));
+      add_child(node, $3);
       $$ = node;    
    }
       
@@ -310,6 +339,7 @@ expression:
       node->str = $1;
       $$ = node;
    }
+   
    |  F_INC F_IDENTIFIER {
       ASTNode* node = new_node(INC);
       node->str = $2;
@@ -321,6 +351,7 @@ expression:
       node->str = $1;
       $$ = node;
    }
+   
    |  F_DEC F_IDENTIFIER {
       ASTNode* node = new_node(DEC);
       node->str = $2;
@@ -333,58 +364,23 @@ expression:
       $$ = node;
    }
 
-   |  F_IDENTIFIER array_decl { 
-      ASTNode* node = new_node(ARRAY_REF);
-      node->list.title = $1;
-      node->list.next = $2;
-      $$ = node;
-   }
-
    | F_STRING {
       ASTNode* node = new_node(STRING);
       node->str = $1;
       $$ = node;
    }
 
-   |  F_NUMBER {
+   | F_NUMBER {
       ASTNode* node = new_node(NUMBER);
       node->val = $1;
       $$ = node;
    }
 
-   |  F_CHAR {
+   | F_CHAR {
       ASTNode* node = new_node(NUMBER);
       node->val = (int)$1;
       $$ = node;
    }
-   ;
-
-declaration:
-   /* empty */ {
-      ASTNode* node = new_node(STOP);
-      $$ = node;
-   }
-   |  F_IDENTIFIER {
-      ASTNode* node = new_node(VARIABLE);
-      node->list.title = $1;
-      node->list.next = new_node(STOP);
-      $$ = node;
-   }
-   |  F_IDENTIFIER ',' declaration {
-      ASTNode* node = new_node(VARIABLE);
-      node->list.title = $1;
-      node->list.next = $3;
-      $$ = node;
-   }
-;
-
-
-else:
-   /* empty */ {
-      ASTNode* node = new_node(STOP);
-      $$ = node;
-   }
-   | F_ELSE block { $$ = $2; }
    ;
 
 block:
@@ -393,8 +389,7 @@ block:
    ;
 
 switch_body:
-   '{' switch_body '}' { $$ = $2; }
-   | F_CASE expression ':' block switch_body {
+   F_CASE expression ':' block switch_body {
       ASTNode* node = new_node(SWITCH_CASE);
    }
    | F_DEFAULT expression ':' block {
@@ -413,31 +408,11 @@ parameters:
       $1->successor = node;
       $$ = $1;
    }
-   | expression ',' parameters {
-      $1->successor = $3;
+   | parameters ',' expression {
+      $3->successor = $1;
       $$ = $1;
    }
 
-
-array_decl:
-   /* empty */ {
-      ASTNode* node = new_node(STOP);
-      $$ = node;
-   }
-  | '[' expression ']' {
-      ASTNode* node = new_node(ARRAY);
-      node->list.inner = $2;
-      node->list.next = new_node(STOP);
-      $$ = node;
-    }
-  | '[' expression ']' array_decl {
-      ASTNode* node = new_node(ARRAY);
-      node->list.inner = $2;
-      node->list.next = $4;
-      $$ = node;
-    }
-;
-
 %%
 
-void yyerror(const char *s) { fprintf(stderr, "Error: %s\n", s); }
+void yyerror(const char *s) { fprintf(stderr, "Parsing Error: %s\n", s); }

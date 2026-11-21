@@ -48,72 +48,25 @@ typedef struct ASTNode {
     } type;
     int val;
     char* str;
-    union {
-        struct ASTNode* inner;
-
-        struct {
-            struct ASTNode* left;
-            struct ASTNode* right;
-        } factors;
-
-        struct {
-            union {
-                char* title;
-                struct ASTNode* inner;
-            };
-            struct ASTNode* next;
-            VariableType variableType;
-        } list;
-
-        struct {
-            char* title;
-            struct ASTNode* args;
-            struct ASTNode* statements;
-        } function;
-
-        struct {
-            struct ASTNode* cond;
-            struct ASTNode* statements;
-            struct ASTNode* else_t;
-        } if_t;
-    };
+    int childC;
+    struct ASTNode** childV;
+    VariableType variableType;
     struct ASTNode* successor;
 } ASTNode;
 
 static const char* ASTNodeTypeNames[] = {
-    "_GLOBAL_DECLARATION",
-    "_AUTO",
-    "_EXTRN",
-    "_ASSIGNMENT",
-    "_WHILE_LOOP",
-    "_IF",
-    "_LABEL",
-    "_RETURN",
-    "_GOTO",
-    "_FUNCTION",
-
-    "_ADD",
-    "_SUBTRACT",
-    "_MULTIPLY",
-    "_DIVIDE",
-    "_GTEQ",
-    "_LTEQ",
-    "_GREATER",
-    "_LESS",
-    "_EQUALS",
-    "_NEQUALS",
-    "_FUNCTION_CALL",
-
-    "_NOT",
-
-    "_INC",
-    "_DEC",
-
-    "_NUMBER",
-    "_VARIABLE",
-    "_ARRAY",
-    "_ARRAY_REF",
-
+    "GLOBAL_DECLARATION", "AUTO", "EXTRN",
+    "ASSIGNMENT",
+    "WHILE_LOOP",
+    "SWITCH_STMT", "SWITCH_CASE",
+    "IF",
+    "LABEL", "GOTO",
+    "FUNCTION", "FUNCTION_CALL", "RETURN", 
+    "ADD", "SUB", "MUL", "DIV",
+    "GE", "LE", "GT", "LT", "EQ", "NE", "NOT",
+    "NEGATIVE",
+    "INC", "DEC",
+    "NUMBER", "VARIABLE", "STRING", "ARRAY", "ARRAY_REF",
     "STOP"
 };
 
